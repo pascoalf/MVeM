@@ -1,16 +1,23 @@
+---
+title: "Protocol"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
 # Introduction
 
 # Preliminary steps
 
 ## Verify sequencig quality
 
-To verify the quality of the sequencing results, there are several tools
-available.
+To verify the quality of the sequencing results, there are several tools available.
 
 We recommend using either FASTQC (ref) or MultiQC (ref).
 
--   FASTQC: <https://www.bioinformatics.babraham.ac.uk/projects/fastqc/>
--   MultiQC: <https://seqera.io/multiqc/>
+ - FASTQC: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+ - MultiQC: https://seqera.io/multiqc/
+
 
 ## Pre-processing of FASTQ files
 
@@ -18,14 +25,11 @@ We recommend using either FASTQC (ref) or MultiQC (ref).
 
 ## Run DADA2
 
-DADA2 is an R package used to assign amplicon sequence variants (ASVs)
-from FASTQ files (ref).
+DADA2 is an R package used to assign amplicon sequence variants (ASVs) from FASTQ files (ref).
 
-The first few steps will ensure that DADA2 knows where the FASTQ files
-are stored and what they refer to. Note that you will need to change the
-path according to your own files.
+The first few steps will ensure that DADA2 knows where the FASTQ files are stored and what they refer to. Note that you will need to change the path according to your own files.
 
-``` r
+```{r, eval = FALSE}
 path <- "./ATLANTIDA_eDNA" # CHANGE ME to the directory containing the fastq files after unzipping.
 # verify files in path
 list.files(path)
@@ -52,7 +56,7 @@ names(filtRs) <- sample.namesR
 
 Inspect quality of sequencing.
 
-``` r
+```{r, eval = FALSE}
 # Example for 5 samples
 # Quality of forward reads
 plotQualityProfile(fnFs[1:5])
@@ -64,20 +68,15 @@ plotQualityProfile(fnFs, aggregate = TRUE)
 plotQualityProfile(fnRs, aggregate = TRUE)
 ```
 
-Based on quality profiles, decide the trimming parameters. To remve
-nucleotides in the end of the reads, set the parameter *truncLen*, where
-the first value corresponds to the trimming of the forward reads and the
-second is for the reverse reads.
+Based on quality profiles, decide the trimming parameters. To remve nucleotides in the end of the reads, set the parameter *truncLen*, where the first value corresponds to the trimming of the forward reads and the second is for the reverse reads.
 
-If the primers are present in your samples and you are sure that they
-are right at the beggining of the sequence, then you can use *trimLeft*
-to remove them.
+If the primers are present in your samples and you are sure that they are right at the beggining of the sequence, then you can use *trimLeft* to remove them.
 
-All other parameters are set to default.
+All other parameters are set to default. 
 
 **Note:** If you are using a Windows OS, set multithread to FALSE.
 
-``` r
+```{r, eval = FALSE}
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,210), 
                      trimLeft = c(nchar("AGACGAGAAGACCCTATG"), ##remove primers
                                   nchar("GGATTGCGCTGTTATCCC")), 
@@ -85,67 +84,61 @@ out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,210),
                      compress=TRUE, multithread=FALSE) # On Windows set multithread=FALSE
 ```
 
-To distinguish true sequence variations from sequencing errors, DADA2
-calculates the probability of finding an error, given the error
-distribution. So, the next step is to learn the error rates:
+To distinguish true sequence variations from sequencing errors, DADA2 calculates the probability of finding an error, given the error distribution. So, the next step is to learn the error rates:
 
-**Note:** This step might take a while. Again, set multithread to FALSE,
-if using Windows OS.
-
-``` r
+**Note:** This step might take a while. Again, set multithread to FALSE, if using Windows OS.
+```{r, eval = FALSE}
 #Learn the Error Rates
 errF <- learnErrors(filtFs, multithread=FALSE)
 errR <- learnErrors(filtRs, multithread=FALSE)
 ```
 
-After learning the error rates, it is possible to do a sanity check on
-the model:
+After learning the error rates, it is possible to do a sanity check on the model:
 
-``` r
+```{r, eval = FALSE}
 plotErrors(errF, nominalQ=TRUE)
 plotErrors(errR, nominalQ=TRUE)
 ```
 
 Based on error rates model, DADA will identify unique sequences:
 
-``` r
+```{r, eval = FALSE}
 # Identify unique sequences
 dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
 dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
 ```
 
-Next, DADA2 will merge the forward and reverse reads. If after this step
-you lost a significant ammount of reads, check the trimming parameters.
+Next, DADA2 will merge the forward and reverse reads. If after this step you lost a significant ammount of reads, check the trimming parameters.
 
-``` r
+```{r, eval = FALSE}
 #Merge paired reads
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 ```
 
 Construct an abundance table:
 
-``` r
+```{r, eval = FALSE}
 #Construct sequence table
 seqtab <- makeSequenceTable(mergers)
 ```
 
 Remove reads outisde the target length:
 
-``` r
+```{r, eval = FALSE}
 # Remove non-target-length sequences from your sequence table
 seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% 200:300]
 ```
 
 Remove chimeric sequences:
 
-``` r
+```{r, eval = FALSE}
 #Remove chimeras
 seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=TRUE, verbose=TRUE)
 ```
 
-Then we can track the number of reads after each step:
 
-``` r
+Then we can track the number of reads after each step:
+```{r, eval = FALSE}
 #Track reads through the pipeline
 getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
@@ -156,23 +149,21 @@ rownames(track) <- sample.names
 head(track)
 ```
 
+
 At this stage, you can save the ASV table for later use:
 
-``` r
+```{r, eval = FALSE}
 #Create .csv file
 write.table(seqtab.nochim, file='ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
 ```
 
 ## Extract sequences to a FASTQ file
 
-Generally, it is useful to have the final unique sequences in a FASTA
-file. We are going to use this file later for BLASTN.
+Generally, it is useful to have the final unique sequences in a FASTA file. We are going to use this file later for BLASTN. 
 
-In this step, it is important to keep track of the position of the ASVs,
-so that we can connect the taxonomy obtained with NCBI and the abundance
-table.
+In this step, it is important to keep track of the position of the ASVs, so that we can connect the taxonomy obtained with NCBI and the abundance table.
 
-``` r
+```{r, eval = FALSE}
 # make FASTA file
 library(seqinr)
 
@@ -194,26 +185,24 @@ write.fasta(sequences = as.list(ASVs.df$Sequence),
             as.string = TRUE)
 ```
 
-# Assign taxonomy
+
+# Assign taxonomy 
 
 To assign taxonomy, we follow these steps:
 
-1.  BLASTN against the mitochondrial 16S database from NCBI (link).
-2.  Filter the best hits based on multiple parameters (see below).
-3.  Solve ties within genus and family level (for *Delphinidae* sp.)
+1. BLASTN against the mitochondrial 16S database from NCBI (link).
+2. Filter the best hits based on multiple parameters (see below).
+3. Solve ties within genus and family level (for *Delphinidae* sp.)
 
 ## Run BLASTN against NCBI
 
-To run blastn against an NCBI database, we use the **BLAST Command Line
-Tool** (ref).
+To run blastn against an NCBI database, we use the **BLAST Command Line Tool** (ref).
 
-Please see installation instructions at:
-<https://www.ncbi.nlm.nih.gov/books/NBK569861/>
+Please see installation instructions at: https://www.ncbi.nlm.nih.gov/books/NBK569861/ 
 
-After installing the BLAST Command Line, download the mitochondria
-database. To do so, run the following in your command line:
+After installing the BLAST Command Line, download the mitochondria database. To do so, run the following in your command line:
 
-``` bash
+```{r, engine = 'bash', eval = FALSE}
 # See what databases are available
 update_blastdb --showall
 
@@ -221,30 +210,25 @@ update_blastdb --showall
 blastdbcmd -entry all -db mito -out mito.fsa
 ```
 
-Don’t forget to note in which folder in your computer the database is
-stored.
+Don't forget to note in which folder in your computer the database is stored.
 
-To run blastn against the mito database, run the following command in
-the command line:
+To run blastn against the mito database, run the following command in the command line:
 
 **Note:** change the file paths as needed.
 
-``` bash
+```{r, engine = 'bash', eval = FALSE}
 blastn -db ../db/mito -query ./ASV.fasta -out ./blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames"
 ```
 
-This command should be fast and it returns a table named blast_results
-(you can change the name as needed). The parameter *-outfmt* determines
-the format and variables present in the table.
+This command should be fast and it returns a table named blast_results (you can change the name as needed). The parameter *-outfmt* determines the format and variables present in the table.
 
 ## Assign taxonomy based on best hits
 
-The raw blast results include all the hits. Therefore, we need to apply
-multiple filters to obtain the best hits. To do so, we go back to R.
+The raw blast results include all the hits. Therefore, we need to apply multiple filters to obtain the best hits. To do so, we go back to R.
 
 Start by loading the blast results into your R session:
 
-``` r
+```{r, eval = FALSE}
 # load packages
 library(dplyr)
 library(tidyr)
@@ -255,32 +239,30 @@ library(purrr)
 # load blast results
 all_hits <- read.csv("./blast_results", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
-                                   "Subject seq-id",    "Subject accession",
-                                   "Subject sequence length",   "evalue", "Bit Score",
-                                   "Raw Score", "Alignment length", "Percentage of identical matches",
-                                   "Number of identical matches",   "Number of mismatches",
+                                   "Subject seq-id",	"Subject accession",
+                                   "Subject sequence length",	"evalue", "Bit Score",
+                                   "Raw Score",	"Alignment length", "Percentage of identical matches",
+                                   "Number of identical matches",	"Number of mismatches",
                                    "Number of positive scoring matches", "Total number of gaps",
-                                   "Taxonomy ID", "Scientific name",    "Subject blast name", 
+                                   "Taxonomy ID", "Scientific name",	"Subject blast name", 
                                    "Subject common name"))
 ```
 
-Based on domain knowledge of the area under study, we can assume that
-some hits are probably wrong. Therefore, to avoid False positive
-detections, we issue a ban list on some species.
+Based on domain knowledge of the area under study, we can assume that some hits are probably wrong. Therefore, to avoid False positive detections, we issue a ban list on some species.
 
-Feel free to edit the list as needed for your experimental setting, by
-editing the file **ban_list**.
+Feel free to edit the list as needed for your experimental setting, by editing the file **ban_list**.
 
-``` r
+
+
+```{r, eval = FALSE}
 # ban list
 ban_list <- read.table("../ban_list.txt", header = FALSE)[,1]
 ```
 
-Additionally, we also need to ensure that we are not obtaining matches
-from non-16S genes. To do so, we filter all accessions based on a
-reference file with all possible target gene accessions.
 
-``` r
+Additionally, we also need to ensure that we are not obtaining matches from non-16S genes. To do so, we filter all accessions based on a reference file with all possible target gene accessions.
+
+```{r, eval = FALSE}
 # target genes
 target_genes <- read.table("../gene_16_list", header = FALSE)
 # some data cleaning
@@ -291,15 +273,14 @@ target_genes <- target_genes %>%
 
 Filter relevant hits:
 
--   Minimum percentage identity: 99.0%
--   Maximum evalue: 10⁻⁵
--   Minimum alignment length: 190 nt
--   Remove species in ban list;
--   Remove hits from non-target genes:
--   Keep hits from relevant biological groups (bony fishes, whales and
-    dolphins)
+ - Minimum percentage identity: 99.0%
+ - Maximum evalue: 10⁻⁵
+ - Minimum alignment length: 190 nt
+ - Remove species in ban list;
+ - Remove hits from non-target genes:
+ - Keep hits from relevant biological groups (bony fishes, whales and dolphins)
 
-``` r
+```{r, eval = FALSE}
 # Filer valid hits
 filtered_hits <- all_hits %>%
   filter(Percentage.of.identical.matches >= 99.0,
@@ -310,10 +291,9 @@ filtered_hits <- all_hits %>%
          Subject.blast.name %in% c("bony fishes","whales & dolphins"))
 ```
 
-After filtration, we have multiple hits for each ASV. To obtain the best
-hit, we select the hits with highest bit score and percentage identity:
+After filtration, we have multiple hits for each ASV. To obtain the best hit, we select the hits with highest bit score and percentage identity:
 
-``` r
+```{r, eval = FALSE}
 # Obtain top hits and Remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
   group_by(Query.accession) %>%
@@ -323,42 +303,31 @@ top_hits <- filtered_hits %>%
   ungroup()
 ```
 
-It is possible to obtain multiple hits with the same scores, but
-different species. Usually, within the same genus or within the same
-family. We call these situations *ties*.
+It is possible to obtain multiple hits with the same scores, but different species. Usually, within the same genus or within the same family. We call these situations *ties*.
 
 To solve ties we need the following functions:
 
--   “./R/check_ties.R” *identifies ties that need to be solved*
--   “./R/assign_LCA.R” *breaks the tie by identifying the last common
-    ancestor - LCA*
+ - "./R/check_ties.R" *identifies ties that need to be solved*
+ - "./R/assign_LCA.R" *breaks the tie by identifying the last common ancestor - LCA*
 
-Additionally, we also need a reference list of genera within Families
-that we want to break ties.
+Additionally, we also need a reference list of genera within Families that we want to break ties.
 
-**Note:**
+**Note:** 
 
--   For species tied within the same genus, we can always assign LCA -
-    it is the genus sp.
--   For species tied between different genera, but within the same
-    family, we can break the tie, if we have a reference. For now, we
-    have references for the families **Pleuronectidae**, **Ziphiidae**
-    and **Delphinidae**.
--   For ties outside the above mentioned situations, we cannot establish
-    LCA and we are not confident on the best hit, therefore, we assigned
-    them as **Uncertain**.
+ - For species tied within the same genus, we can always assign LCA - it is the genus sp.
+ - For species tied between different genera, but within the same family, we can break the tie, if we have a reference. For now, we have references for the families **Pleuronectidae**, **Ziphiidae** and **Delphinidae**. 
+ - For ties outside the above mentioned situations, we cannot establish LCA and we are not confident on the best hit, therefore, we assigned them as **Uncertain**.
 
 Load the functions into your R session:
 
-``` r
+```{r, eval = FALSE}
 source("./R/check_ties.R")
 source("./R/assign_LCA.R")
 ```
 
-Load the reference list for families **Pleuronectidae**, **Ziphiidae**
-and **Delphinidae**.
+Load the reference list for families  **Pleuronectidae**, **Ziphiidae** and **Delphinidae**.
 
-``` r
+```{r, eval = FALSE}
 # Add reference for families
 delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
 pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
@@ -367,7 +336,7 @@ ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) 
 
 Get best hits, without ties:
 
-``` r
+```{r, eval = FALSE}
 # best hits, with LCA
 taxonomic_assignments <- top_hits %>%
   group_by(Query.accession) %>% 
@@ -397,10 +366,9 @@ write.csv(taxonomic_assignments, "taxonomic_assignments.csv")
 
 ## Add taxonomic assignments to ASV abundance table
 
-First, we need to transform the blast results in a data frame compatible
-with the abundance table. Then, we can merge them based on ASV ID.
+First, we need to transform the blast results in a data frame compatible with the abundance table. Then, we can merge them based on ASV ID.
 
-``` r
+```{r, eval = FALSE}
 # transform blast results to compatible format
 ASV_ncbi <- taxonomic_assignments %>% 
   select(ASV = Query.accession, Scientific.name) %>% 
@@ -417,10 +385,9 @@ abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
 
 ## Extras
 
-After the abundance table is ready, we can add additional steps, like
-the removal of ASVs below 0.1% relative abundance.
+After the abundance table is ready, we can add additional steps, like the removal of ASVs below 0.1% relative abundance.
 
-``` r
+```{r, eval = FALSE}
 # Filter local low abundance (< 0.01%)
 total_reads <- abundance_table_long %>%
   group_by(Sample) %>%
@@ -433,9 +400,10 @@ abundance_table_long_filtered <- abundance_table_long %>%
   select(-total, -freq)
 ```
 
+
 **We need to review and generalize better the code below**
 
-``` r
+```{r, eval = FALSE}
 # CONTAMINATION FILTERING BASED ON CONTROLS
 sample_control_map <- list(
   "M1-1-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-1-16S_S1_L001_R1_001"),
@@ -482,17 +450,20 @@ abundance_table_wide <- abundance_table_long_filtered %>%
 write.csv(abundance_table_wide, file = "abundance_table_wide_eDNA.csv", row.names = FALSE)
 ```
 
+
 # Verify results
 
 We provide some examples of data analyses below.
 
-## Rarefaction curves
+## Rarefaction curves 
+
 
 ## Example of quick diversity analysis
 
+
 **We need to review this code**
 
-``` r
+```{r, eval = FALSE}
 # ------------------------
 # Load necessary libraries
 # ------------------------
@@ -689,4 +660,10 @@ p3 <- ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
 
 #Display the plot
 print(p3)
+
 ```
+
+
+
+
+
