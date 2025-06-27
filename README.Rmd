@@ -11,6 +11,7 @@ output:
 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+
 <!-- badges: end -->
 
 # Introduction
@@ -28,6 +29,13 @@ We recommend using either FASTQC (ref) or MultiQC (ref).
 
 
 ## Pre-processing of FASTQ files
+
+If the FASTQ files include adaptor sequences and/or primers, it is possible to remove them using cutadapt, for example.
+
+ - cutadapt: https://cutadapt.readthedocs.io/en/stable/
+ 
+ Primer removal is also possible in the DADA2 section of code, presented below. However, if you remove the primers with cutadapt, then you must not cut them again in DADA2.
+
 
 # Obtain unique sequences using DADA2
 

@@ -22,6 +22,15 @@ We recommend using either FASTQC (ref) or MultiQC (ref).
 
 ## Pre-processing of FASTQ files
 
+If the FASTQ files include adaptor sequences and/or primers, it is
+possible to remove them using cutadapt, for example.
+
+-   cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
+
+Primer removal is also possible in the DADA2 section of code, presented
+below. However, if you remove the primers with cutadapt, then you must
+not cut them again in DADA2.
+
 # Obtain unique sequences using DADA2
 
 ## Run DADA2
