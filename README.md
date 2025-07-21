@@ -247,7 +247,7 @@ the command line:
 **Note:** change the file paths as needed.
 
 ``` bash
-blastn -db ../db/mito -query ./ASV.fasta -out ./blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames"
+blastn -db nt -query ASV_eDNA.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -remote
 ```
 
 This command should be fast and it returns a table named blast_results
