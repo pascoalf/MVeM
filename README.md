@@ -228,32 +228,19 @@ Tool** (ref).
 Please see installation instructions at:
 <https://www.ncbi.nlm.nih.gov/books/NBK569861/>
 
-After installing the BLAST Command Line, download the mitochondria
-database. To do so, run the following in your command line:
-
-``` bash
-# See what databases are available
-update_blastdb --showall
-
-# Download the mito database
-blastdbcmd -entry all -db mito -out mito.fsa
-```
-
-Don’t forget to note in which folder in your computer the database is
-stored.
-
-To run blastn against the mito database, run the following command in
-the command line:
-
-**Note:** change the file paths as needed.
-
 ``` bash
 blastn -db nt -query ASV_eDNA.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -remote
 ```
 
-This command should be fast and it returns a table named blast_results
-(you can change the name as needed). The parameter *-outfmt* determines
-the format and variables present in the table.
+This command returns a table named blast_results (you can change the
+name as needed). The parameter *-outfmt* determines the format and
+variables present in the table.
+
+The parameter *-remote* runs the code in the NCBI dedicated server,
+which means that the time it takes to run your samples might vary (it
+may take more than 1 hour).
+
+**Note:** change the file paths as needed.
 
 ## Assign taxonomy based on best hits
 
