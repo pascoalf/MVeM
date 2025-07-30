@@ -4,6 +4,7 @@
 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+
 <!-- badges: end -->
 
 # Introduction
@@ -450,10 +451,10 @@ abundance_table_long_filtered <- abundance_table_long %>%
   select(-total, -freq)
 ```
 
-**We need to review and generalize better the code below**
+**Identify ASVs from control samples and filter them out**
 
 ``` r
-# CONTAMINATION FILTERING BASED ON CONTROLS
+# Create control map, connecting samples to their controls
 sample_control_map <- list(
   "M1-1-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-1-16S_S1_L001_R1_001"),
   "M1-2-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-2-16S_S1_L001_R1_001"),
@@ -533,10 +534,7 @@ rarecurve(ASV_matrix,
 **We need to review this code**
 
 ``` r
-# ------------------------
-# Load necessary libraries
-# ------------------------
-
+#
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -544,11 +542,7 @@ library(ggplot2)
 library(vegan)
 library(scales)
 
-# ------------------------
-# Load and clean data
-# ------------------------
-
-# Read CSV
+# Load abundance table in wide format
 df <- read_csv("abundance_table_wide_eDNA.csv")
 
 # Filter to keep only target taxa (non-NA Scientific.name)
@@ -564,10 +558,7 @@ cols_to_remove <- c(
 )
 df_clean <- df %>% select(-any_of(cols_to_remove))
 
-# ------------------------
 # Create ASV matrix
-# ------------------------
-
 # Ensure unique rownames (from first column, presumably ASV IDs)
 rownames(df_clean) <- make.unique(as.character(df_clean[[1]]))
 
@@ -586,10 +577,7 @@ asv_matrix_t <- asv_matrix_t[rowSums(asv_matrix_t) > 0, ]
 # Clean sample names again from filtered matrix rownames (just to be sure)
 rownames(asv_matrix_t) <- gsub("-16S_S1_L001_R1_001", "", rownames(asv_matrix_t))
 
-# ------------------------
 # Alpha Diversity per Sample (Observed + Shannon)
-# ------------------------
-
 # Calculate diversity metrics per sample
 alpha_df <- data.frame(
   Sample = rownames(asv_matrix_t),
@@ -597,32 +585,24 @@ alpha_df <- data.frame(
   Shannon = diversity(asv_matrix_t, index = "shannon")
 )
 
-# ---- Plot: Observed Richness (Boxplot only) ----
-p_obs <- ggplot(alpha_df, aes(y = Observed)) +
+# Observed Richness (Boxplot only)
+ggplot(alpha_df, aes(y = Observed)) +
   geom_boxplot(fill = "steelblue", alpha = 0.8) +
   labs(title = "Observed ASVs per Sample", x = "", y = "Observed Richness") +
   theme_minimal()
 
-print(p_obs)
-
-# ---- Plot: Shannon Index (Boxplot only) ----
-p_shannon <- ggplot(alpha_df, aes(y = Shannon)) +
+# Shannon Index (Boxplot only)
+ggplot(alpha_df, aes(y = Shannon)) +
   geom_boxplot(fill = "darkgreen", alpha = 0.8) +
   labs(title = "Shannon Diversity per Sample", x = "", y = "Shannon Index") +
   theme_minimal()
 
-print(p_shannon)
-
-# ------------------------
 # Beta Diversity (Bray-Curtis)
-# ------------------------
-
 # Calculate Bray-Curtis dissimilarity
 bray_dist <- vegdist(asv_matrix_t, method = "bray")
 
 # Perform NMDS (k=2 dimensions)
-set.seed(42)  # for reproducibility
-nmds_res <- metaMDS(bray_dist, k = 2, trymax = 100)
+set.seed(42); nmds_res <- metaMDS(bray_dist, k = 2, trymax = 100)
 
 # Extract NMDS points
 nmds_df <- as.data.frame(nmds_res$points)
@@ -635,21 +615,18 @@ nmds_df$Sample <- rownames(asv_matrix_t)
 cat("NMDS stress:", round(nmds_res$stress, 4), "\n")
 
 # Plot NMDS
-p_nmds <- ggplot(nmds_df, aes(x = NMDS1, y = NMDS2, label = Sample)) +
+ggplot(nmds_df, aes(x = NMDS1, y = NMDS2, label = Sample)) +
   geom_point(size = 3, color = "darkorange") +
   geom_text(vjust = -0.5, size = 3) +
   labs(title = paste("Beta Diversity (Bray-Curtis NMDS), Stress =", round(nmds_res$stress, 3)),
        x = "NMDS1", y = "NMDS2") +
   theme_minimal()
 
-print(p_nmds)
-
 # Calculate Jaccard dissimilarity (presence/absence)
 jaccard_dist <- vegdist(asv_matrix_t, method = "jaccard", binary = TRUE)
 
 # NMDS on Jaccard
-set.seed(42)
-nmds_jaccard <- metaMDS(jaccard_dist, k = 2, trymax = 100)
+set.seed(42); nmds_jaccard <- metaMDS(jaccard_dist, k = 2, trymax = 100)
 
 # Prepare dataframe
 nmds_jaccard_df <- as.data.frame(nmds_jaccard$points)
@@ -657,25 +634,14 @@ colnames(nmds_jaccard_df) <- c("NMDS1", "NMDS2")
 nmds_jaccard_df$Sample <- rownames(nmds_jaccard_df)
 
 # Plot Jaccard NMDS
-p_nmds_jaccard <- ggplot(nmds_jaccard_df, aes(x = NMDS1, y = NMDS2, label = Sample)) +
+ggplot(nmds_jaccard_df, aes(x = NMDS1, y = NMDS2, label = Sample)) +
   geom_point(size = 3, color = "steelblue") +
   geom_text(vjust = -0.5, size = 3) +
   labs(title = paste("Beta Diversity (Jaccard NMDS), Stress =", round(nmds_jaccard$stress, 3)),
        x = "NMDS1", y = "NMDS2") +
   theme_minimal()
 
-print(p_nmds_jaccard)
-
-# ------------------------
 # Relative Abundance Plot
-# ------------------------
-
-# Load required libraries
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(scales)
-
 #Pivot data to long format
 asv_long <- df_clean %>%
   pivot_longer(cols = -Scientific.name, names_to = "Sample", values_to = "Abundance")
@@ -710,7 +676,7 @@ custom_colors <- c(
 )
 
 #Plot stacked bar chart
-p3 <- ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
+ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
   geom_bar(stat = "identity") +
   labs(
     title = "Relative Abundance by Taxon",
@@ -726,7 +692,4 @@ p3 <- ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
   scale_y_continuous(labels = percent_format()) +
   scale_fill_manual(values = custom_colors) +
   guides(fill = guide_legend(title = "Taxon"))
-
-#Display the plot
-print(p3)
 ```
