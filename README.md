@@ -531,8 +531,6 @@ rarecurve(ASV_matrix,
 
 ## Example of quick diversity analysis
 
-**We need to review this code**
-
 ``` r
 #
 library(readr)
