@@ -16,7 +16,8 @@ stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://li
 To verify the quality of the sequencing results, there are several tools
 available.
 
-We recommend using either FASTQC (ref) or MultiQC (ref).
+We recommend using either FASTQC (Andrews, 2010) or MultiQC (Ewels,
+2016).
 
 -   FASTQC: <https://www.bioinformatics.babraham.ac.uk/projects/fastqc/>
 -   MultiQC: <https://seqera.io/multiqc/>
@@ -37,7 +38,7 @@ not cut them again in DADA2.
 ## Run DADA2
 
 DADA2 is an R package used to assign amplicon sequence variants (ASVs)
-from FASTQ files (ref).
+from FASTQ files (Callahan et al., 2016).
 
 The first few steps will ensure that DADA2 knows where the FASTQ files
 are stored and what they refer to. Note that you will need to change the
@@ -222,8 +223,9 @@ To assign taxonomy, we follow these steps:
 
 ## Run BLASTN against NCBI
 
-To run blastn against an NCBI database, we use the **BLAST Command Line
-Tool** (ref).
+To run blastn (Camacha et al., 2009; Altschul et al., 1990) against the
+nucleotide database of NCBI (Benson et al., 2013), we use the **BLAST
+Command Line Tool**.
 
 Please see installation instructions at:
 <https://www.ncbi.nlm.nih.gov/books/NBK569861/>
@@ -678,3 +680,32 @@ ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
   scale_fill_manual(values = custom_colors) +
   guides(fill = guide_legend(title = "Taxon"))
 ```
+
+# References
+
+-   Andrews, S. (2010). FastQC: A Quality Control Tool for High
+    Throughput Sequence Data \[Online\]. Available online at:
+    <http://www.bioinformatics.babraham.ac.uk/projects/fastqc/>
+
+-   Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize
+    analysis results for multiple tools and samples in a single report.
+    Bioinformatics. 2016 Oct 1;32(19):3047-8. doi:
+    10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411;
+    PMCID: PMC5039924.
+
+-   Callahan BJ, McMurdie PJ, Rosen MJ, Han AW, Johnson AJ, Holmes SP.
+    DADA2: High-resolution sample inference from Illumina amplicon data.
+    Nat Methods. 2016 Jul;13(7):581-3. doi: 10.1038/nmeth.3869. Epub
+    2016 May 23. PMID: 27214047; PMCID: PMC4927377.
+
+-   Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J.,
+    Bealer, K., and Madden, T.L. 2009. BLAST+: architecture and
+    applications. BMC Bioinformatics, 10, 421.
+
+-   Altschul, S.F., Gish, W., Miller, W., Myers, E.W. and Lipman,
+    D.J., 1990. Basic local alignment search tool. Journal of Molecular
+    Biology, 215(3), pp.403-410.
+
+-   Benson, D. A., Cavanaugh, M., Clark, K., Karsch-Mizrachi, I.,
+    Lipman, D. J., Ostell, J., & Sayers, E. W. (2013). GenBank. Nucleic
+    acids research, 41(D1), D36-D42.
