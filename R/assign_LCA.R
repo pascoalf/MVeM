@@ -15,6 +15,10 @@ assign_LCA <- function(x){
       LCA = "Pleuronectidae sp."
     } else if(mean(ties %in% ziphiidae_family$Genus)){
       LCA = "Ziphiidae sp."
+    } else if(mean(ties %in% salmonidae_family$Genus)){
+    LCA = "Salmonidae sp."
+    } else if(mean(ties %in% mugilidae_family$Genus)){
+      LCA = "Mugilidae sp."
     } else {
       LCA = "Uncertain"
     }
