@@ -230,8 +230,11 @@ Command Line Tool**.
 Please see installation instructions at:
 <https://www.ncbi.nlm.nih.gov/books/NBK569861/>
 
+Blast parameters: - Minimum percentage identity: 99.0% - Maximum evalue:
+10⁻⁵ - Minimum query cover: 80%
+
 ``` bash
-blastn -db nt -query ASV_eDNA.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -remote
+blastn -db nt -query ASV_atlantida.fasta -out blast_results_atlantida -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
 ```
 
 This command returns a table named blast_results (you can change the
@@ -280,7 +283,11 @@ editing the file **ban_list**.
 
 ``` r
 # ban list
-ban_list <- read.table("../ban_list.txt", header = FALSE)[,1]
+ban_list <- read.table("./refs/ban_list.txt", header = FALSE) %>% 
+  rename(Genus = V1,
+         Species = V2) %>% 
+  mutate(binomial_name = paste(Genus, Species)) %>% 
+  pull(binomial_name)
 ```
 
 Additionally, we also need to ensure that we are not obtaining matches
@@ -289,7 +296,7 @@ reference file with all possible target gene accessions.
 
 ``` r
 # target genes
-target_genes <- read.table("../gene_16_list", header = FALSE)
+target_genes <- read.table("refs/gene_16_list", header = FALSE) ## last accessed 23 May 2025
 # some data cleaning
 target_genes <- target_genes %>% 
   rename(Subject.accession = V1) %>% 
@@ -298,8 +305,6 @@ target_genes <- target_genes %>%
 
 Filter relevant hits:
 
--   Minimum percentage identity: 99.0%
--   Maximum evalue: 10⁻⁵
 -   Minimum alignment length: 190 nt
 -   Remove species in ban list;
 -   Remove hits from non-target genes:
@@ -309,10 +314,8 @@ Filter relevant hits:
 ``` r
 # Filer valid hits
 filtered_hits <- all_hits %>%
-  filter(Percentage.of.identical.matches >= 99.0,
-         evalue < 1e-05,
-         Alignment.length >= 190,
-        # !Scientific.name %in% ban_list,
+  filter(Alignment.length >= 190,
+        !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
          Subject.blast.name %in% c("bony fishes","whales & dolphins"))
 ```
@@ -323,10 +326,13 @@ hit, we select the hits with highest bit score and percentage identity:
 ``` r
 # Obtain top hits and Remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
+    # Remove environmental sample rows
+  filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%
+  # Normalize to first two words for species-level matching
+  mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Scientific.name)) %>%
   group_by(Query.accession) %>%
   filter(Bit.Score == max(Bit.Score)) %>%
   filter(Percentage.of.identical.matches == max(Percentage.of.identical.matches)) %>% 
-  filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%  # NEW LINE
   ungroup()
 ```
 
@@ -349,11 +355,13 @@ that we want to break ties.
     it is the genus sp.
 -   For species tied between different genera, but within the same
     family, we can break the tie, if we have a reference. For now, we
-    have references for the families **Pleuronectidae**, **Ziphiidae**
-    and **Delphinidae**.
+    have references for the families **Pleuronectidae**, **Ziphiidae**,
+    **Salmonidae**, **Mugilidae** and **Delphinidae**.
 -   For ties outside the above mentioned situations, we cannot establish
     LCA and we are not confident on the best hit, therefore, we assigned
     them as **Uncertain**.
+-   Note: if genera from different families are tied, we assign to
+    **Uncertain**.
 
 Load the functions into your R session:
 
@@ -370,6 +378,8 @@ and **Delphinidae**.
 delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
 pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
 ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
+salmonidae_family <- read.table("Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
+mugilidae_family <- read.table("Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
 ```
 
 Get best hits, without ties:

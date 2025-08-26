@@ -7,10 +7,7 @@ output:
 
 <!-- badges: start -->
 
-[![GPLv3
-license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
-[![Lifecycle:
-stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html) [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
 <!-- badges: end -->
 
@@ -24,18 +21,16 @@ To verify the quality of the sequencing results, there are several tools availab
 
 We recommend using either FASTQC (Andrews, 2010) or MultiQC (Ewels, 2016).
 
- - FASTQC: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
- - MultiQC: https://seqera.io/multiqc/
-
+-   FASTQC: <https://www.bioinformatics.babraham.ac.uk/projects/fastqc/>
+-   MultiQC: <https://seqera.io/multiqc/>
 
 ## Pre-processing of FASTQ files
 
 If the FASTQ files include adaptor sequences and/or primers, it is possible to remove them using cutadapt, for example.
 
- - cutadapt: https://cutadapt.readthedocs.io/en/stable/
- 
- Primer removal is also possible in the DADA2 section of code, presented below. However, if you remove the primers with cutadapt, then you must not cut them again in DADA2.
+-   cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
 
+Primer removal is also possible in the DADA2 section of code, presented below. However, if you remove the primers with cutadapt, then you must not cut them again in DADA2.
 
 # Obtain unique sequences using DADA2
 
@@ -88,7 +83,7 @@ Based on quality profiles, decide the trimming parameters. To remve nucleotides 
 
 If the primers are present in your samples and you are sure that they are right at the beggining of the sequence, then you can use *trimLeft* to remove them.
 
-All other parameters are set to default. 
+All other parameters are set to default.
 
 **Note:** If you are using a Windows OS, set multithread to FALSE.
 
@@ -103,6 +98,7 @@ out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,210),
 To distinguish true sequence variations from sequencing errors, DADA2 calculates the probability of finding an error, given the error distribution. So, the next step is to learn the error rates:
 
 **Note:** This step might take a while. Again, set multithread to FALSE, if using Windows OS.
+
 ```{r, eval = FALSE}
 #Learn the Error Rates
 errF <- learnErrors(filtFs, multithread=FALSE)
@@ -152,8 +148,8 @@ Remove chimeric sequences:
 seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=TRUE, verbose=TRUE)
 ```
 
-
 Then we can track the number of reads after each step:
+
 ```{r, eval = FALSE}
 #Track reads through the pipeline
 getN <- function(x) sum(getUniques(x))
@@ -165,7 +161,6 @@ rownames(track) <- sample.names
 head(track)
 ```
 
-
 At this stage, you can save the ASV table for later use:
 
 ```{r, eval = FALSE}
@@ -175,7 +170,7 @@ write.table(seqtab.nochim, file='ASV_table.tsv', quote=FALSE, sep='\t', col.name
 
 ## Extract sequences to a FASTQ file
 
-Generally, it is useful to have the final unique sequences in a FASTA file. We are going to use this file later for BLASTN. 
+Generally, it is useful to have the final unique sequences in a FASTA file. We are going to use this file later for BLASTN.
 
 In this step, it is important to keep track of the position of the ASVs, so that we can connect the taxonomy obtained with NCBI and the abundance table.
 
@@ -201,23 +196,27 @@ write.fasta(sequences = as.list(ASVs.df$Sequence),
             as.string = TRUE)
 ```
 
-
-# Assign taxonomy 
+# Assign taxonomy
 
 To assign taxonomy, we follow these steps:
 
-1. BLASTN against the mitochondrial 16S database from NCBI (link).
-2. Filter the best hits based on multiple parameters (see below).
-3. Solve ties within genus and family level (for *Delphinidae* sp.)
+1.  BLASTN against the mitochondrial 16S database from NCBI (link).
+2.  Filter the best hits based on multiple parameters (see below).
+3.  Solve ties within genus and family level (for *Delphinidae* sp.)
 
 ## Run BLASTN against NCBI
 
 To run blastn (Camacha et al., 2009; Altschul et al., 1990) against the nucleotide database of NCBI (Benson et al., 2013), we use the **BLAST Command Line Tool**.
 
-Please see installation instructions at: https://www.ncbi.nlm.nih.gov/books/NBK569861/ 
+Please see installation instructions at: <https://www.ncbi.nlm.nih.gov/books/NBK569861/>
+
+Blast parameters: 
+ -   Minimum percentage identity: 99.0%
+ -   Maximum evalue: 10⁻⁵
+ -   Minimum query cover: 80%
 
 ```{r, engine = 'bash', eval = FALSE}
-blastn -db nt -query ASV_eDNA.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -remote
+blastn -db nt -query ASV_atlantida.fasta -out blast_results_atlantida -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
 ```
 
 This command returns a table named blast_results (you can change the name as needed). The parameter *-outfmt* determines the format and variables present in the table.
@@ -256,19 +255,20 @@ Based on domain knowledge of the area under study, we can assume that some hits 
 
 Feel free to edit the list as needed for your experimental setting, by editing the file **ban_list**.
 
-
-
 ```{r, eval = FALSE}
 # ban list
-ban_list <- read.table("../ban_list.txt", header = FALSE)[,1]
+ban_list <- read.table("./refs/ban_list.txt", header = FALSE) %>% 
+  rename(Genus = V1,
+         Species = V2) %>% 
+  mutate(binomial_name = paste(Genus, Species)) %>% 
+  pull(binomial_name)
 ```
-
 
 Additionally, we also need to ensure that we are not obtaining matches from non-16S genes. To do so, we filter all accessions based on a reference file with all possible target gene accessions.
 
 ```{r, eval = FALSE}
 # target genes
-target_genes <- read.table("../gene_16_list", header = FALSE)
+target_genes <- read.table("refs/gene_16_list", header = FALSE) ## last accessed 23 May 2025
 # some data cleaning
 target_genes <- target_genes %>% 
   rename(Subject.accession = V1) %>% 
@@ -277,20 +277,16 @@ target_genes <- target_genes %>%
 
 Filter relevant hits:
 
- - Minimum percentage identity: 99.0%
- - Maximum evalue: 10⁻⁵
- - Minimum alignment length: 190 nt
- - Remove species in ban list;
- - Remove hits from non-target genes:
- - Keep hits from relevant biological groups (bony fishes, whales and dolphins)
+-   Minimum alignment length: 190 nt
+-   Remove species in ban list;
+-   Remove hits from non-target genes:
+-   Keep hits from relevant biological groups (bony fishes, whales and dolphins)
 
 ```{r, eval = FALSE}
 # Filer valid hits
 filtered_hits <- all_hits %>%
-  filter(Percentage.of.identical.matches >= 99.0,
-         evalue < 1e-05,
-         Alignment.length >= 190,
-        # !Scientific.name %in% ban_list,
+  filter(Alignment.length >= 190,
+        !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
          Subject.blast.name %in% c("bony fishes","whales & dolphins"))
 ```
@@ -300,10 +296,13 @@ After filtration, we have multiple hits for each ASV. To obtain the best hit, we
 ```{r, eval = FALSE}
 # Obtain top hits and Remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
+    # Remove environmental sample rows
+  filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%
+  # Normalize to first two words for species-level matching
+  mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Scientific.name)) %>%
   group_by(Query.accession) %>%
   filter(Bit.Score == max(Bit.Score)) %>%
   filter(Percentage.of.identical.matches == max(Percentage.of.identical.matches)) %>% 
-  filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%  # NEW LINE
   ungroup()
 ```
 
@@ -311,16 +310,17 @@ It is possible to obtain multiple hits with the same scores, but different speci
 
 To solve ties we need the following functions:
 
- - "./R/check_ties.R" *identifies ties that need to be solved*
- - "./R/assign_LCA.R" *breaks the tie by identifying the last common ancestor - LCA*
+-   "./R/check_ties.R" *identifies ties that need to be solved*
+-   "./R/assign_LCA.R" *breaks the tie by identifying the last common ancestor - LCA*
 
 Additionally, we also need a reference list of genera within Families that we want to break ties.
 
-**Note:** 
+**Note:**
 
- - For species tied within the same genus, we can always assign LCA - it is the genus sp.
- - For species tied between different genera, but within the same family, we can break the tie, if we have a reference. For now, we have references for the families **Pleuronectidae**, **Ziphiidae** and **Delphinidae**. 
- - For ties outside the above mentioned situations, we cannot establish LCA and we are not confident on the best hit, therefore, we assigned them as **Uncertain**.
+-   For species tied within the same genus, we can always assign LCA - it is the genus sp.
+-   For species tied between different genera, but within the same family, we can break the tie, if we have a reference. For now, we have references for the families **Pleuronectidae**, **Ziphiidae**, **Salmonidae**, **Mugilidae** and **Delphinidae**.
+-   For ties outside the above mentioned situations, we cannot establish LCA and we are not confident on the best hit, therefore, we assigned them as **Uncertain**.
+-   Note: if genera from different families are tied, we assign to **Uncertain**.
 
 Load the functions into your R session:
 
@@ -329,13 +329,15 @@ source("./R/check_ties.R")
 source("./R/assign_LCA.R")
 ```
 
-Load the reference list for families  **Pleuronectidae**, **Ziphiidae** and **Delphinidae**.
+Load the reference list for families **Pleuronectidae**, **Ziphiidae** and **Delphinidae**.
 
 ```{r, eval = FALSE}
 # Add reference for families
 delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
 pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
 ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
+salmonidae_family <- read.table("Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
+mugilidae_family <- read.table("Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
 ```
 
 Get best hits, without ties:
@@ -404,7 +406,6 @@ abundance_table_long_filtered <- abundance_table_long %>%
   select(-total, -freq)
 ```
 
-
 **Identify ASVs from control samples and filter them out**
 
 ```{r, eval = FALSE}
@@ -454,12 +455,11 @@ abundance_table_wide <- abundance_table_long_filtered %>%
 write.csv(abundance_table_wide, file = "abundance_table_wide_eDNA.csv", row.names = FALSE)
 ```
 
-
 # Verify results
 
 We provide some examples of data analyses below.
 
-## Rarefaction curves 
+## Rarefaction curves
 
 ```{r, eval = FALSE}
 # rarefaction curve
@@ -484,10 +484,7 @@ rarecurve(ASV_matrix,
           ylab = "Number of ASVs")
 ```
 
-
-
 ## Example of quick diversity analysis
-
 
 ```{r, eval = FALSE}
 #
@@ -650,18 +647,16 @@ ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
   guides(fill = guide_legend(title = "Taxon"))
 ```
 
-
 # References
 
-- Andrews, S. (2010). FastQC:  A Quality Control Tool for High Throughput Sequence Data [Online]. Available online at: http://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+-   Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data [Online]. Available online at: <http://www.bioinformatics.babraham.ac.uk/projects/fastqc/>
 
-- Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics. 2016 Oct 1;32(19):3047-8. doi: 10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411; PMCID: PMC5039924.
+-   Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics. 2016 Oct 1;32(19):3047-8. doi: 10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411; PMCID: PMC5039924.
 
-- Callahan BJ, McMurdie PJ, Rosen MJ, Han AW, Johnson AJ, Holmes SP. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods. 2016 Jul;13(7):581-3. doi: 10.1038/nmeth.3869. Epub 2016 May 23. PMID: 27214047; PMCID: PMC4927377.
+-   Callahan BJ, McMurdie PJ, Rosen MJ, Han AW, Johnson AJ, Holmes SP. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods. 2016 Jul;13(7):581-3. doi: 10.1038/nmeth.3869. Epub 2016 May 23. PMID: 27214047; PMCID: PMC4927377.
 
-- Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J., Bealer, K., and Madden, T.L. 2009. BLAST+: architecture and applications. BMC Bioinformatics, 10, 421.
+-   Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J., Bealer, K., and Madden, T.L. 2009. BLAST+: architecture and applications. BMC Bioinformatics, 10, 421.
 
-- Altschul, S.F., Gish, W., Miller, W., Myers, E.W. and Lipman, D.J., 1990. Basic local alignment search tool. Journal of Molecular Biology, 215(3), pp.403-410.
+-   Altschul, S.F., Gish, W., Miller, W., Myers, E.W. and Lipman, D.J., 1990. Basic local alignment search tool. Journal of Molecular Biology, 215(3), pp.403-410.
 
-- Benson, D. A., Cavanaugh, M., Clark, K., Karsch-Mizrachi, I., Lipman, D. J., Ostell, J., & Sayers, E. W. (2013). GenBank. Nucleic acids research, 41(D1), D36-D42.
-
+-   Benson, D. A., Cavanaugh, M., Clark, K., Karsch-Mizrachi, I., Lipman, D. J., Ostell, J., & Sayers, E. W. (2013). GenBank. Nucleic acids research, 41(D1), D36-D42.
