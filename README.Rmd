@@ -278,18 +278,21 @@ The parameter *-remote* runs the code in the NCBI dedicated server, which means 
 
 ## Assign taxonomy based on best hits
 
+For this section we will need additional pacakges:
+
+```{r}
+library(tidyr)
+library(ulrb)
+library(stringr)
+library(purrr)
+library(readxl)
+```
+
 The raw blast results include all the hits. Therefore, we need to apply multiple filters to obtain the best hits. To do so, we go back to R.
 
 Start by loading the blast results into your R session:
 
 ```{r, eval = FALSE}
-# load packages
-library(dplyr)
-library(tidyr)
-library(ulrb)
-library(stringr)
-library(purrr)
-
 # load blast results
 all_hits <- read.csv("./blast_results", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
@@ -424,7 +427,6 @@ Load the reference list for families **Pleuronectidae**, **Ziphiidae** and **Del
 
 **NOTE: We will change this segment (add taxize package)**
 
-
 ```{r, eval = FALSE}
 # Add reference for families
 delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
@@ -513,7 +515,12 @@ abundance_table_long_filtered <- abundance_table_long %>%
 
 **Identify ASVs from control samples and filter them out**
 
+Before this step, fill the **sample_control_map_template.xlsx** file in **refs** folder, you can follow the example file, **sample_control_map_example.xlsx**. 
+
+
 ```{r, eval = FALSE}
+# Load sample_control_map
+readxl::read_xlsx(sample_control_map_example.xlsx)
 # Create control map, connecting samples to their controls
 sample_control_map <- list(
   "M1-1-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-1-16S_S1_L001_R1_001"),
@@ -562,15 +569,17 @@ write.csv(abundance_table_wide_filtered, file = "abundance_table_wide_eDNA_filte
 
 # Verify results
 
+For this section we need additional packages:
+```{r}
+library(vegan)
+```
+
 We provide some examples of data analyses below.
 
 ## Rarefaction curves
 
 ```{r, eval = FALSE}
-# rarefaction curve
-library(vegan)
-library(dplyr)
-
+# step for rarefaction curve
 # remove unnecessary columns
 ASV_matrix.1 <- abundance_table_wide %>% 
   select(-Sequence, -Scientific.name) 
