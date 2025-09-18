@@ -35,10 +35,10 @@ not cut them again in DADA2.
 
 # Obtain unique sequences using DADA2
 
-## Run DADA2
-
 DADA2 is an R package used to assign amplicon sequence variants (ASVs)
 from FASTQ files (Callahan et al., 2016).
+
+## Data preparation
 
 The first few steps will ensure that DADA2 knows where the FASTQ files
 are stored and what they refer to. Note that you will need to change the
@@ -69,6 +69,8 @@ names(filtFs) <- sample.namesF
 names(filtRs) <- sample.namesR
 ```
 
+## Quality profiles
+
 Inspect quality of sequencing.
 
 ``` r
@@ -82,6 +84,8 @@ plotQualityProfile(fnRs[1:5])
 plotQualityProfile(fnFs, aggregate = TRUE)
 plotQualityProfile(fnRs, aggregate = TRUE)
 ```
+
+## Filter and trim reads
 
 Based on quality profiles, decide the trimming parameters. To remve
 nucleotides in the end of the reads, set the parameter *truncLen*, where
@@ -104,6 +108,8 @@ out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,210),
                      compress=TRUE, multithread=FALSE) # On Windows set multithread=FALSE
 ```
 
+## Learn error rates
+
 To distinguish true sequence variations from sequencing errors, DADA2
 calculates the probability of finding an error, given the error
 distribution. So, the next step is to learn the error rates:
@@ -124,6 +130,8 @@ the model:
 plotErrors(errF, nominalQ=TRUE)
 plotErrors(errR, nominalQ=TRUE)
 ```
+
+## Obtain ASVs
 
 Based on error rates model, DADA will identify unique sequences:
 
@@ -155,12 +163,16 @@ Remove reads outisde the target length:
 seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% 200:300]
 ```
 
-Remove chimeric sequences:
+## Remove chimeric sequences
+
+To remove chimeric sequences:
 
 ``` r
 #Remove chimeras
 seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=TRUE, verbose=TRUE)
 ```
+
+## Summary track reads
 
 Then we can track the number of reads after each step:
 
@@ -175,6 +187,8 @@ rownames(track) <- sample.names
 head(track)
 ```
 
+## Save ASV table
+
 At this stage, you can save the ASV table for later use:
 
 ``` r
@@ -182,7 +196,7 @@ At this stage, you can save the ASV table for later use:
 write.table(seqtab.nochim, file='ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
 ```
 
-## Extract sequences to a FASTQ file
+## Export reads to a FASTA file
 
 Generally, it is useful to have the final unique sequences in a FASTA
 file. We are going to use this file later for BLASTN.
