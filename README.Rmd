@@ -321,7 +321,7 @@ Additionally, we also need to ensure that we are not obtaining matches from non-
 
 ```{r, eval = FALSE}
 # target genes
-target_genes <- read.table("refs/gene_16_list", header = FALSE) ## last accessed 23 May 2025
+target_genes <- read.table("refs/gene_16_list.txt", header = FALSE) ## last accessed 23 May 2025
 # some data cleaning
 target_genes <- target_genes %>% 
   rename(Subject.accession = V1) %>% 
@@ -333,7 +333,7 @@ Filter relevant hits:
 -   Minimum alignment length: 190 nt
 -   Remove species in ban list;
 -   Remove hits from non-target genes:
--   Keep hits from relevant biological groups (bony fishes, whales and dolphins)
+-   Keep hits from relevant biological groups (teleosts, cetaceans, and elasmobranchs)
 
 ```{r, eval = FALSE}
 # Filer valid hits
@@ -341,7 +341,9 @@ filtered_hits <- all_hits %>%
   filter(Alignment.length >= 190,
         !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
-         Subject.blast.name %in% c("bony fishes","whales & dolphins"))
+         Subject.blast.name %in% c("bony fishes",
+                                   "whales & dolphins",
+                                   "sharks & rays"))
 ```
 
 After filtration, we have multiple hits for each ASV. To obtain the best hit, we select the hits with highest bit score and percentage identity:
