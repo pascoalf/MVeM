@@ -11,6 +11,17 @@ stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://li
 
 # Preliminary steps
 
+Before starting, we advise the user to create a dedicated directory
+(folder) to the project. Within this directory, the user may add
+additional directories:
+
+-   R (for R scripts)
+-   input (for input files, like fastq)
+-   results (to store results)
+
+Note: be careful to know the paths to the files you will be using later
+on.
+
 ## Verify sequencig quality
 
 To verify the quality of the sequencing results, there are several tools
