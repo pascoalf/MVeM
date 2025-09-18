@@ -253,7 +253,7 @@ To assign taxonomy, we follow these steps:
 
 1.  BLASTN against the nucleotide (nt) database from NCBI (https://ftp.ncbi.nlm.nih.gov/blast/db/).
 2.  Filter the best hits based on multiple parameters (see below).
-3.  Solve ties within genus and family level (for *Delphinidae* sp.)
+3.  Solve ties within genus and family level (Last Common Ancestor approach).
 
 ## Run BLASTN against NCBI
 
@@ -272,7 +272,7 @@ blastn -db nt -query ASV_atlantida.fasta -out blast_results_atlantida -outfmt "6
 
 This command returns a table named blast_results (you can change the name as needed). The parameter *-outfmt* determines the format and variables present in the table.
 
-The parameter *-remote* runs the code in the NCBI dedicated server, which means that the time it takes to run your samples might vary (it may take more than 1 hour).
+The parameter *-remote* runs the code in the NCBI dedicated server, which means that the time it takes to run your samples might vary.
 
 **Note:** change the file paths as needed.
 
