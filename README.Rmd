@@ -429,6 +429,10 @@ source("./R/assign_LCA.R")
 
 Load the reference list for families **Pleuronectidae**, **Ziphiidae** and **Delphinidae**.
 
+
+**NOTE: We will change this segment (add taxize package)**
+
+
 ```{r, eval = FALSE}
 # Add reference for families
 delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
