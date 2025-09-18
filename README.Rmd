@@ -161,7 +161,7 @@ dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
 dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 ```
 
-Next, DADA2 will merge the forward and reverse reads. If after this step you lost a significant ammount of reads, check the trimming parameters.
+Next, DADA2 will merge the forward and reverse reads. If after this step you lost a significant amount of reads, check the trimming parameters (see *Filter and trim reads section*). Consider that you need at least 12 bp of merge between forward and reverse reads (by default). We do not recommend changing the default overlap. 
 
 ```{r, eval = FALSE}
 #Merge paired reads
@@ -175,11 +175,11 @@ Construct an abundance table:
 seqtab <- makeSequenceTable(mergers)
 ```
 
-Remove reads outisde the target length:
+Verify length of reads:
 
-```{r, eval = FALSE}
-# Remove non-target-length sequences from your sequence table
-seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% 200:300]
+```{r}
+table(nchar(getSequences(seqtab)))
+hist(nchar(getSequences(seqtab)), main = "Distribution of Sequence lengths")
 ```
 
 ## Remove chimeric sequences
