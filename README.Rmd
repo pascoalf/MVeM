@@ -368,7 +368,7 @@ It is possible to obtain multiple hits with the same scores, but different speci
 To solve ties we need the following functions:
 
   - check_ties; *identifies ties that need to be solved*
-  - assign_LCA. *breaks the tie by identifying the last common ancestor - LCA*
+  - assign_LCA. *breaks the tie by identifying the lowest common ancestor - LCA*
 
 ```{r}
 # check ties function
@@ -479,17 +479,24 @@ ASV_ncbi <- taxonomic_assignments %>%
   filter(!is.na(Scientific.name)) %>%  # Remove unassigned ASVs
   left_join(ASVs.df, by = "ASV") # ASVs.df was made in the DADA2 section
 
-# Create abundance table (long format)
+# Create abundance table in long format
 abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
   prepare_tidy_data(sample_names = row.names(ASV_table), samples_in = "rows") %>% 
   rename(Sequence = Taxa_id) %>% 
   left_join(ASVs.df, by = "Sequence") %>% 
   left_join(ASV_ncbi, by = "ASV")
+
+# Creates abundance table in wide format
+abundance_table_wide <- abundance_table_long %>% 
+  pivot_wider(names_from = Sample, values_from = Abundance)
+
+# sabe wide format abundance table
+write.csv(abundance_table_wide, "results/abundance_table_wide.csv")
 ```
 
 ## Extras
 
-After the abundance table is ready, we can add additional steps, like the removal of ASVs below 0.1% relative abundance.
+After the abundance table is ready, we can add additional steps, like the removal of ASVs below 0.01% relative abundance.
 
 ```{r, eval = FALSE}
 # Filter local low abundance (< 0.01%)
@@ -546,11 +553,11 @@ for (sample_name in names(sample_control_map)) {
 write.csv(abundance_table_long_filtered, file = "abundance_table_long_eDNA.csv", row.names = FALSE)
 
 # Create wide-format abundance table
-abundance_table_wide <- abundance_table_long_filtered %>% 
+abundance_table_wide_filtered <- abundance_table_long_filtered %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
 
 # Save wide-format table
-write.csv(abundance_table_wide, file = "abundance_table_wide_eDNA.csv", row.names = FALSE)
+write.csv(abundance_table_wide_filtered, file = "abundance_table_wide_eDNA_filtered.csv", row.names = FALSE)
 ```
 
 # Verify results
