@@ -302,9 +302,11 @@ all_hits <- read.csv("./blast_results", header = FALSE, # change file path as ne
                                    "Subject common name"))
 ```
 
-Based on domain knowledge of the area under study, we can assume that some hits are probably wrong. Therefore, to avoid False positive detections, we issue a ban list on some species.
+## Add ban list (optional)
 
-Feel free to edit the list as needed for your experimental setting, by editing the file **ban_list**.
+Considering the length of the reads used to classify taxonomy, and considering the high similarity between some species within the same families, it is possible to have a sequence attributed to multiple different species. However, based on the area of study, it might be possible to know beforehand that some species are not present in the area. Thus, in those specific situations, to improve the accuracy of the classification, we can remove them, using a ban list. Note that this is optional and should be carefully considered by the user, to avoid introducing bias in the analysis.  
+
+If you want to apply a ban list, you must edit the file **ban_list.txt**, according to your own experimental setup. If you have no prior knowledge of the species expected in the area, then you should **not** aply this step. 
 
 ```{r, eval = FALSE}
 # ban list
