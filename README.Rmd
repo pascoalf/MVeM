@@ -49,6 +49,7 @@ Packages required for steps in R:
 library(dada2); packageVersion("dada2") ## we used 1.22
 library(ShortRead)
 library(seqinr) # to make FASTA file
+library(dplyr)
 ```
 
 # Obtain unique sequences using DADA2
@@ -205,7 +206,7 @@ track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, 
 
 # If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
-rownames(track) <- sample.names
+rownames(track) <- sample.namesF ## sample.namesF is just to indicate the sample ID
 head(track)
 ```
 
@@ -214,7 +215,10 @@ head(track)
 At this stage, you can save the ASV table for later use:
 
 ```{r, eval = FALSE}
-#Create .csv file
+# Change object name
+ASV_table <- seqtab.nochim
+
+# Create .csv file
 write.table(seqtab.nochim, file='ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
 ```
 
@@ -226,7 +230,7 @@ In this step, it is important to keep track of the position of the ASVs, so that
 
 ```{r, eval = FALSE}
 # load ASV table
-ASV_table <- read.table("./ASV_table.tsv") ## this is the table we saved in the previous session
+#ASV_table <- read.table("./ASV_table.tsv") ## optional: to load the abundance table previously made
 
 # make data frame with unique ASVs ID and Sequence
 ASVs.df <- ASV_table %>% 
@@ -247,7 +251,7 @@ write.fasta(sequences = as.list(ASVs.df$Sequence),
 
 To assign taxonomy, we follow these steps:
 
-1.  BLASTN against the mitochondrial 16S database from NCBI (link).
+1.  BLASTN against the nucleotide (nt) database from NCBI (https://ftp.ncbi.nlm.nih.gov/blast/db/).
 2.  Filter the best hits based on multiple parameters (see below).
 3.  Solve ties within genus and family level (for *Delphinidae* sp.)
 
