@@ -33,6 +33,136 @@ Primer removal is also possible in the DADA2 section of code, presented
 below. However, if you remove the primers with cutadapt, then you must
 not cut them again in DADA2.
 
+# Raw reads processing in R
+
+Packages required for steps in R:
+
+``` r
+# Packages used
+library(dada2); packageVersion("dada2") ## we used 1.22
+```
+
+    ## Loading required package: Rcpp
+
+    ## [1] '1.22.0'
+
+``` r
+library(ShortRead)
+```
+
+    ## Loading required package: BiocGenerics
+
+    ## 
+    ## Attaching package: 'BiocGenerics'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     IQR, mad, sd, var, xtabs
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    ##     dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    ##     grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    ##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    ##     rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    ##     union, unique, unsplit, which.max, which.min
+
+    ## Loading required package: BiocParallel
+
+    ## Loading required package: Biostrings
+
+    ## Loading required package: S4Vectors
+
+    ## Loading required package: stats4
+
+    ## 
+    ## Attaching package: 'S4Vectors'
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     expand.grid, I, unname
+
+    ## Loading required package: IRanges
+
+    ## Loading required package: XVector
+
+    ## Loading required package: GenomeInfoDb
+
+    ## 
+    ## Attaching package: 'Biostrings'
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     strsplit
+
+    ## Loading required package: Rsamtools
+
+    ## Loading required package: GenomicRanges
+
+    ## Loading required package: GenomicAlignments
+
+    ## Loading required package: SummarizedExperiment
+
+    ## Loading required package: MatrixGenerics
+
+    ## Loading required package: matrixStats
+
+    ## 
+    ## Attaching package: 'MatrixGenerics'
+
+    ## The following objects are masked from 'package:matrixStats':
+    ## 
+    ##     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    ##     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    ##     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    ##     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    ##     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    ##     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    ##     colWeightedMeans, colWeightedMedians, colWeightedSds,
+    ##     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    ##     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    ##     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    ##     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    ##     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    ##     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    ##     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    ##     rowWeightedSds, rowWeightedVars
+
+    ## Loading required package: Biobase
+
+    ## Welcome to Bioconductor
+    ## 
+    ##     Vignettes contain introductory material; view with
+    ##     'browseVignettes()'. To cite Bioconductor, see
+    ##     'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+    ## 
+    ## Attaching package: 'Biobase'
+
+    ## The following object is masked from 'package:MatrixGenerics':
+    ## 
+    ##     rowMedians
+
+    ## The following objects are masked from 'package:matrixStats':
+    ## 
+    ##     anyMissing, rowMedians
+
+``` r
+library(seqinr) # to make FASTA file
+```
+
+    ## 
+    ## Attaching package: 'seqinr'
+
+    ## The following object is masked from 'package:matrixStats':
+    ## 
+    ##     count
+
+    ## The following object is masked from 'package:Biostrings':
+    ## 
+    ##     translate
+
 # Obtain unique sequences using DADA2
 
 DADA2 is an R package used to assign amplicon sequence variants (ASVs)
@@ -206,9 +336,6 @@ so that we can connect the taxonomy obtained with NCBI and the abundance
 table.
 
 ``` r
-# make FASTA file
-library(seqinr)
-
 # load ASV table
 ASV_table <- read.table("./ASV_table.tsv") ## this is the table we saved in the previous session
 

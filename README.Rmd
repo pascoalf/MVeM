@@ -32,6 +32,17 @@ If the FASTQ files include adaptor sequences and/or primers, it is possible to r
 
 Primer removal is also possible in the DADA2 section of code, presented below. However, if you remove the primers with cutadapt, then you must not cut them again in DADA2.
 
+# Raw reads processing in R 
+
+Packages required for steps in R:
+
+```{r}
+# Packages used
+library(dada2); packageVersion("dada2") ## we used 1.22
+library(ShortRead)
+library(seqinr) # to make FASTA file
+```
+
 # Obtain unique sequences using DADA2
 
 DADA2 is an R package used to assign amplicon sequence variants (ASVs) from FASTQ files (Callahan et al., 2016).
@@ -188,9 +199,6 @@ Generally, it is useful to have the final unique sequences in a FASTA file. We a
 In this step, it is important to keep track of the position of the ASVs, so that we can connect the taxonomy obtained with NCBI and the abundance table.
 
 ```{r, eval = FALSE}
-# make FASTA file
-library(seqinr)
-
 # load ASV table
 ASV_table <- read.table("./ASV_table.tsv") ## this is the table we saved in the previous session
 
