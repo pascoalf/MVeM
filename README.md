@@ -463,7 +463,7 @@ To assign taxonomy, we follow these steps:
 1.  BLASTN against the nucleotide (nt) database from NCBI
     (<https://ftp.ncbi.nlm.nih.gov/blast/db/>).
 2.  Filter the best hits based on multiple parameters (see below).
-3.  Solve ties within genus and family level (Last Common Ancestor
+3.  Solve ties within genus and family level (Lowest Common Ancestor
     approach).
 
 ## Run BLASTN against NCBI
@@ -493,19 +493,54 @@ which means that the time it takes to run your samples might vary.
 
 ## Assign taxonomy based on best hits
 
+For this section we will need additional pacakges:
+
+``` r
+library(tidyr)
+```
+
+    ## 
+    ## Attaching package: 'tidyr'
+
+    ## The following object is masked from 'package:S4Vectors':
+    ## 
+    ##     expand
+
+``` r
+library(ulrb)
+library(stringr)
+library(purrr)
+```
+
+    ## 
+    ## Attaching package: 'purrr'
+
+    ## The following object is masked from 'package:ShortRead':
+    ## 
+    ##     compose
+
+    ## The following object is masked from 'package:GenomicRanges':
+    ## 
+    ##     reduce
+
+    ## The following object is masked from 'package:XVector':
+    ## 
+    ##     compact
+
+    ## The following object is masked from 'package:IRanges':
+    ## 
+    ##     reduce
+
+``` r
+library(readxl)
+```
+
 The raw blast results include all the hits. Therefore, we need to apply
 multiple filters to obtain the best hits. To do so, we go back to R.
 
 Start by loading the blast results into your R session:
 
 ``` r
-# load packages
-library(dplyr)
-library(tidyr)
-library(ulrb)
-library(stringr)
-library(purrr)
-
 # load blast results
 all_hits <- read.csv("./blast_results", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
@@ -601,7 +636,7 @@ family. We call these situations *ties*.
 To solve ties we need the following functions:
 
 -   check_ties; *identifies ties that need to be solved*
--   assign_LCA. *breaks the tie by identifying the last common
+-   assign_LCA. *breaks the tie by identifying the lowest common
     ancestor - LCA*
 
 ``` r
@@ -656,21 +691,16 @@ that we want to break ties.
     family, we can break the tie, if we have a reference. For now, we
     have references for the families **Pleuronectidae**, **Ziphiidae**,
     **Salmonidae**, **Mugilidae** and **Delphinidae**.
--   For ties outside the above mentioned situations, we cannot establish
-    LCA and we are not confident on the best hit, therefore, we assigned
-    them as **Uncertain**.
+-   For ties between different families, we cannot establish LCA and we
+    are not confident on the best hit, therefore, we assigned them as
+    **Uncertain**. \[*note* we are trying to implement order level\]
 -   Note: if genera from different families are tied, we assign to
     **Uncertain**.
 
-Load the functions into your R session:
-
-``` r
-source("./R/check_ties.R")
-source("./R/assign_LCA.R")
-```
-
 Load the reference list for families **Pleuronectidae**, **Ziphiidae**
 and **Delphinidae**.
+
+**NOTE: We will change this segment (add taxize package)**
 
 ``` r
 # Add reference for families
@@ -679,6 +709,10 @@ pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleurone
 ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
 salmonidae_family <- read.table("Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
 mugilidae_family <- read.table("Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
+
+## alternative to explore:
+upstream("Sardina pilchardus", db = "itis", upto = "genus") ## to get genus
+upstream("Sardina pilchardus", db = "itis", upto = "family") ## to get families
 ```
 
 Get best hits, without ties:
@@ -723,18 +757,25 @@ ASV_ncbi <- taxonomic_assignments %>%
   filter(!is.na(Scientific.name)) %>%  # Remove unassigned ASVs
   left_join(ASVs.df, by = "ASV") # ASVs.df was made in the DADA2 section
 
-# Create abundance table (long format)
+# Create abundance table in long format
 abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
   prepare_tidy_data(sample_names = row.names(ASV_table), samples_in = "rows") %>% 
   rename(Sequence = Taxa_id) %>% 
   left_join(ASVs.df, by = "Sequence") %>% 
   left_join(ASV_ncbi, by = "ASV")
+
+# Creates abundance table in wide format
+abundance_table_wide <- abundance_table_long %>% 
+  pivot_wider(names_from = Sample, values_from = Abundance)
+
+# sabe wide format abundance table
+write.csv(abundance_table_wide, "results/abundance_table_wide.csv")
 ```
 
 ## Extras
 
 After the abundance table is ready, we can add additional steps, like
-the removal of ASVs below 0.1% relative abundance.
+the removal of ASVs below 0.01% relative abundance.
 
 ``` r
 # Filter local low abundance (< 0.01%)
@@ -751,7 +792,13 @@ abundance_table_long_filtered <- abundance_table_long %>%
 
 **Identify ASVs from control samples and filter them out**
 
+Before this step, fill the **sample_control_map_template.xlsx** file in
+**refs** folder, you can follow the example file,
+**sample_control_map_example.xlsx**.
+
 ``` r
+# Load sample_control_map
+readxl::read_xlsx(sample_control_map_example.xlsx)
 # Create control map, connecting samples to their controls
 sample_control_map <- list(
   "M1-1-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-1-16S_S1_L001_R1_001"),
@@ -791,24 +838,38 @@ for (sample_name in names(sample_control_map)) {
 write.csv(abundance_table_long_filtered, file = "abundance_table_long_eDNA.csv", row.names = FALSE)
 
 # Create wide-format abundance table
-abundance_table_wide <- abundance_table_long_filtered %>% 
+abundance_table_wide_filtered <- abundance_table_long_filtered %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
 
 # Save wide-format table
-write.csv(abundance_table_wide, file = "abundance_table_wide_eDNA.csv", row.names = FALSE)
+write.csv(abundance_table_wide_filtered, file = "abundance_table_wide_eDNA_filtered.csv", row.names = FALSE)
 ```
 
 # Verify results
+
+For this section we need additional packages:
+
+``` r
+library(vegan)
+```
+
+    ## Loading required package: permute
+
+    ## 
+    ## Attaching package: 'permute'
+
+    ## The following object is masked from 'package:seqinr':
+    ## 
+    ##     getType
+
+    ## Loading required package: lattice
 
 We provide some examples of data analyses below.
 
 ## Rarefaction curves
 
 ``` r
-# rarefaction curve
-library(vegan)
-library(dplyr)
-
+# step for rarefaction curve
 # remove unnecessary columns
 ASV_matrix.1 <- abundance_table_wide %>% 
   select(-Sequence, -Scientific.name) 
