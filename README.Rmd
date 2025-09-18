@@ -317,6 +317,8 @@ ban_list <- read.table("./refs/ban_list.txt", header = FALSE) %>%
   pull(binomial_name)
 ```
 
+## Prevent match with non-16S genes
+
 Additionally, we also need to ensure that we are not obtaining matches from non-16S genes. To do so, we filter all accessions based on a reference file with all possible target gene accessions.
 
 ```{r, eval = FALSE}
