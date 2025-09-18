@@ -142,14 +142,23 @@ plotErrors(errF, nominalQ=TRUE)
 plotErrors(errR, nominalQ=TRUE)
 ```
 
-## Obtain ASVs
+## Dereplication and inference of ASVs
+
+To reduce computational effort, the user may add a dereplication step:
+
+```{r}
+derepFs <- derepFastq(filtFs, verbose = TRUE)
+names(derepFs) <- sample.names
+derepRs <- derepFastq(filtRs, verbose = TRUE)
+names(derepRs) <- sample.names
+```
 
 Based on error rates model, DADA will identify unique sequences:
 
 ```{r, eval = FALSE}
 # Identify unique sequences
-dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
-dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
+dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
+dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 ```
 
 Next, DADA2 will merge the forward and reverse reads. If after this step you lost a significant ammount of reads, check the trimming parameters.

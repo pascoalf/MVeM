@@ -41,8 +41,8 @@ possible to remove them using cutadapt, for example.
 -   cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
 
 Primer removal is also possible in the DADA2 section of code, presented
-below. However, if you remove the primers with cutadapt, then you must
-not cut them again in DADA2.
+below. However, **if you remove the primers with cutadapt, then you must
+not cut them again in DADA2**.
 
 # Raw reads processing in R
 
@@ -250,11 +250,13 @@ All other parameters are set to default.
 
 ``` r
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
-                     truncLen=c(240,210), ## change according to quality profiles
-                     trimLeft = c(nchar("AGACGAGAAGACCCTATG"), ##remove primers
-                                  nchar("GGATTGCGCTGTTATCCC")), 
+                     truncLen=c(240,210), ## change according to quality profiles 
                      maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE, 
-                     compress=TRUE, multithread=FALSE) # On Windows set multithread=FALSE
+                     compress=TRUE, multithread = TRUE,# On Windows set multithread=FALSE
+                     ## OPTIONAL: if you need to remove primers at this stage, you can use trimLeft
+                     #trimLeft = c(nchar("AGACGAGAAGACCCTATG"),                      
+                     #            nchar("GGATTGCGCTGTTATCCC"))
+                     ) 
 ```
 
 ## Learn error rates
