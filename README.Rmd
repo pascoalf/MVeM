@@ -188,7 +188,10 @@ To remove chimeric sequences:
 
 ```{r, eval = FALSE}
 #Remove chimeras
-seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=TRUE, verbose=TRUE)
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+
+# check percentage of non-chimeric sequences
+sum(seqtab.nochim)/sum(seqtab)
 ```
 
 ## Summary track reads
