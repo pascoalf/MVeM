@@ -253,7 +253,7 @@ To assign taxonomy, we follow these steps:
 
 1.  BLASTN against the nucleotide (nt) database from NCBI (https://ftp.ncbi.nlm.nih.gov/blast/db/).
 2.  Filter the best hits based on multiple parameters (see below).
-3.  Solve ties within genus and family level (Last Common Ancestor approach).
+3.  Solve ties within genus and family level (Lowest Common Ancestor approach).
 
 ## Run BLASTN against NCBI
 
@@ -440,6 +440,10 @@ pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleurone
 ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
 salmonidae_family <- read.table("Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
 mugilidae_family <- read.table("Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
+
+## alternative to explore:
+upstream("Sardina pilchardus", db = "itis", upto = "genus") ## to get genus
+upstream("Sardina pilchardus", db = "itis", upto = "family") ## to get families
 ```
 
 Get best hits, without ties:
