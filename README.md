@@ -174,6 +174,69 @@ library(seqinr) # to make FASTA file
     ## 
     ##     translate
 
+``` r
+library(dplyr)
+```
+
+    ## 
+    ## Attaching package: 'dplyr'
+
+    ## The following object is masked from 'package:seqinr':
+    ## 
+    ##     count
+
+    ## The following object is masked from 'package:ShortRead':
+    ## 
+    ##     id
+
+    ## The following objects are masked from 'package:GenomicAlignments':
+    ## 
+    ##     first, last
+
+    ## The following object is masked from 'package:Biobase':
+    ## 
+    ##     combine
+
+    ## The following object is masked from 'package:matrixStats':
+    ## 
+    ##     count
+
+    ## The following objects are masked from 'package:GenomicRanges':
+    ## 
+    ##     intersect, setdiff, union
+
+    ## The following objects are masked from 'package:Biostrings':
+    ## 
+    ##     collapse, intersect, setdiff, setequal, union
+
+    ## The following object is masked from 'package:GenomeInfoDb':
+    ## 
+    ##     intersect
+
+    ## The following object is masked from 'package:XVector':
+    ## 
+    ##     slice
+
+    ## The following objects are masked from 'package:IRanges':
+    ## 
+    ##     collapse, desc, intersect, setdiff, slice, union
+
+    ## The following objects are masked from 'package:S4Vectors':
+    ## 
+    ##     first, intersect, rename, setdiff, setequal, union
+
+    ## The following objects are masked from 'package:BiocGenerics':
+    ## 
+    ##     combine, intersect, setdiff, union
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
+
 # Obtain unique sequences using DADA2
 
 DADA2 is an R package used to assign amplicon sequence variants (ASVs)
@@ -282,18 +345,30 @@ plotErrors(errF, nominalQ=TRUE)
 plotErrors(errR, nominalQ=TRUE)
 ```
 
-## Obtain ASVs
+## Dereplication and inference of ASVs
+
+To reduce computational effort, the user may add a dereplication step:
+
+``` r
+derepFs <- derepFastq(filtFs, verbose = TRUE)
+names(derepFs) <- sample.names
+derepRs <- derepFastq(filtRs, verbose = TRUE)
+names(derepRs) <- sample.names
+```
 
 Based on error rates model, DADA will identify unique sequences:
 
 ``` r
 # Identify unique sequences
-dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
-dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
+dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
+dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 ```
 
 Next, DADA2 will merge the forward and reverse reads. If after this step
-you lost a significant ammount of reads, check the trimming parameters.
+you lost a significant amount of reads, check the trimming parameters
+(see *Filter and trim reads section*). Consider that you need at least
+12 bp of merge between forward and reverse reads (by default). We do not
+recommend changing the default overlap.
 
 ``` r
 #Merge paired reads
@@ -307,11 +382,11 @@ Construct an abundance table:
 seqtab <- makeSequenceTable(mergers)
 ```
 
-Remove reads outisde the target length:
+Verify length of reads:
 
 ``` r
-# Remove non-target-length sequences from your sequence table
-seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% 200:300]
+table(nchar(getSequences(seqtab)))
+hist(nchar(getSequences(seqtab)), main = "Distribution of Sequence lengths")
 ```
 
 ## Remove chimeric sequences
@@ -320,7 +395,10 @@ To remove chimeric sequences:
 
 ``` r
 #Remove chimeras
-seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=TRUE, verbose=TRUE)
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+
+# check percentage of non-chimeric sequences
+sum(seqtab.nochim)/sum(seqtab)
 ```
 
 ## Summary track reads
@@ -334,7 +412,7 @@ track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, 
 
 # If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
-rownames(track) <- sample.names
+rownames(track) <- sample.namesF ## sample.namesF is just to indicate the sample ID
 head(track)
 ```
 
@@ -343,7 +421,10 @@ head(track)
 At this stage, you can save the ASV table for later use:
 
 ``` r
-#Create .csv file
+# Change object name
+ASV_table <- seqtab.nochim
+
+# Create .csv file
 write.table(seqtab.nochim, file='ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
 ```
 
@@ -358,7 +439,7 @@ table.
 
 ``` r
 # load ASV table
-ASV_table <- read.table("./ASV_table.tsv") ## this is the table we saved in the previous session
+#ASV_table <- read.table("./ASV_table.tsv") ## optional: to load the abundance table previously made
 
 # make data frame with unique ASVs ID and Sequence
 ASVs.df <- ASV_table %>% 
@@ -379,9 +460,11 @@ write.fasta(sequences = as.list(ASVs.df$Sequence),
 
 To assign taxonomy, we follow these steps:
 
-1.  BLASTN against the mitochondrial 16S database from NCBI (link).
+1.  BLASTN against the nucleotide (nt) database from NCBI
+    (<https://ftp.ncbi.nlm.nih.gov/blast/db/>).
 2.  Filter the best hits based on multiple parameters (see below).
-3.  Solve ties within genus and family level (for *Delphinidae* sp.)
+3.  Solve ties within genus and family level (Last Common Ancestor
+    approach).
 
 ## Run BLASTN against NCBI
 
@@ -404,8 +487,7 @@ name as needed). The parameter *-outfmt* determines the format and
 variables present in the table.
 
 The parameter *-remote* runs the code in the NCBI dedicated server,
-which means that the time it takes to run your samples might vary (it
-may take more than 1 hour).
+which means that the time it takes to run your samples might vary.
 
 **Note:** change the file paths as needed.
 
@@ -436,12 +518,22 @@ all_hits <- read.csv("./blast_results", header = FALSE, # change file path as ne
                                    "Subject common name"))
 ```
 
-Based on domain knowledge of the area under study, we can assume that
-some hits are probably wrong. Therefore, to avoid False positive
-detections, we issue a ban list on some species.
+## Add ban list (optional)
 
-Feel free to edit the list as needed for your experimental setting, by
-editing the file **ban_list**.
+Considering the length of the reads used to classify taxonomy, and
+considering the high similarity between some species within the same
+families, it is possible to have a sequence attributed to multiple
+different species. However, based on the area of study, it might be
+possible to know beforehand that some species are not present in the
+area. Thus, in those specific situations, to improve the accuracy of the
+classification, we can remove them, using a ban list. Note that this is
+optional and should be carefully considered by the user, to avoid
+introducing bias in the analysis.
+
+If you want to apply a ban list, you must edit the file
+**ban_list.txt**, according to your own experimental setup. If you have
+no prior knowledge of the species expected in the area, then you should
+**not** aply this step.
 
 ``` r
 # ban list
@@ -458,7 +550,7 @@ reference file with all possible target gene accessions.
 
 ``` r
 # target genes
-target_genes <- read.table("refs/gene_16_list", header = FALSE) ## last accessed 23 May 2025
+target_genes <- read.table("refs/gene_16_list.txt", header = FALSE) ## last accessed 23 May 2025
 # some data cleaning
 target_genes <- target_genes %>% 
   rename(Subject.accession = V1) %>% 
@@ -470,8 +562,8 @@ Filter relevant hits:
 -   Minimum alignment length: 190 nt
 -   Remove species in ban list;
 -   Remove hits from non-target genes:
--   Keep hits from relevant biological groups (bony fishes, whales and
-    dolphins)
+-   Keep hits from relevant biological groups (teleosts, cetaceans, and
+    elasmobranchs)
 
 ``` r
 # Filer valid hits
@@ -479,14 +571,16 @@ filtered_hits <- all_hits %>%
   filter(Alignment.length >= 190,
         !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
-         Subject.blast.name %in% c("bony fishes","whales & dolphins"))
+         Subject.blast.name %in% c("bony fishes",
+                                   "whales & dolphins",
+                                   "sharks & rays"))
 ```
 
 After filtration, we have multiple hits for each ASV. To obtain the best
 hit, we select the hits with highest bit score and percentage identity:
 
 ``` r
-# Obtain top hits and Remove environmental samples hits before summarizing
+# Obtain top hits and remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
     # Remove environmental sample rows
   filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%
@@ -504,9 +598,50 @@ family. We call these situations *ties*.
 
 To solve ties we need the following functions:
 
--   “./R/check_ties.R” *identifies ties that need to be solved*
--   “./R/assign_LCA.R” *breaks the tie by identifying the last common
+-   check_ties; *identifies ties that need to be solved*
+-   assign_LCA. *breaks the tie by identifying the last common
     ancestor - LCA*
+
+``` r
+# check ties function
+check_ties <- function(x){
+  x %>%
+    pull(Scientific.name) %>% 
+    unique() %>% 
+    word() %>%
+    unique() 
+} 
+```
+
+``` r
+# assign_LCA function
+assign_LCA <- function(x){
+  # identify ASV with ties to break
+  ties <- check_ties(x)
+  
+  if(length(ties) == 1){
+    # untie within the same genus
+    LCA = paste(ties, "sp.")
+    
+  } else {
+    # check if ties are from Delphinidae family
+    if(mean(ties %in% delphinidae_family$Genus) == 1){
+      LCA = "Delphinidae sp."
+    } else if(mean(ties %in% pleuronectidae_family$Genus) == 1){
+      LCA = "Pleuronectidae sp."
+    } else if(mean(ties %in% ziphiidae_family$Genus)){
+      LCA = "Ziphiidae sp."
+    } else if(mean(ties %in% salmonidae_family$Genus)){
+    LCA = "Salmonidae sp."
+    } else if(mean(ties %in% mugilidae_family$Genus)){
+      LCA = "Mugilidae sp."
+    } else {
+      LCA = "Uncertain"
+    }
+  }
+  return(LCA)
+}
+```
 
 Additionally, we also need a reference list of genera within Families
 that we want to break ties.

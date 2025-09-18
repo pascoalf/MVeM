@@ -147,7 +147,7 @@ plotErrors(errR, nominalQ=TRUE)
 
 To reduce computational effort, the user may add a dereplication step:
 
-```{r}
+```{r, eval=FALSE}
 derepFs <- derepFastq(filtFs, verbose = TRUE)
 names(derepFs) <- sample.names
 derepRs <- derepFastq(filtRs, verbose = TRUE)
@@ -178,7 +178,7 @@ seqtab <- makeSequenceTable(mergers)
 
 Verify length of reads:
 
-```{r}
+```{r, eval = FALSE}
 table(nchar(getSequences(seqtab)))
 hist(nchar(getSequences(seqtab)), main = "Distribution of Sequence lengths")
 ```
@@ -349,7 +349,7 @@ filtered_hits <- all_hits %>%
 After filtration, we have multiple hits for each ASV. To obtain the best hit, we select the hits with highest bit score and percentage identity:
 
 ```{r, eval = FALSE}
-# Obtain top hits and Remove environmental samples hits before summarizing
+# Obtain top hits and remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
     # Remove environmental sample rows
   filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%
@@ -365,8 +365,49 @@ It is possible to obtain multiple hits with the same scores, but different speci
 
 To solve ties we need the following functions:
 
--   "./R/check_ties.R" *identifies ties that need to be solved*
--   "./R/assign_LCA.R" *breaks the tie by identifying the last common ancestor - LCA*
+  - check_ties; *identifies ties that need to be solved*
+  - assign_LCA. *breaks the tie by identifying the last common ancestor - LCA*
+
+```{r}
+# check ties function
+check_ties <- function(x){
+  x %>%
+    pull(Scientific.name) %>% 
+    unique() %>% 
+    word() %>%
+    unique() 
+} 
+```
+
+```{r}
+# assign_LCA function
+assign_LCA <- function(x){
+  # identify ASV with ties to break
+  ties <- check_ties(x)
+  
+  if(length(ties) == 1){
+    # untie within the same genus
+    LCA = paste(ties, "sp.")
+    
+  } else {
+    # check if ties are from Delphinidae family
+    if(mean(ties %in% delphinidae_family$Genus) == 1){
+      LCA = "Delphinidae sp."
+    } else if(mean(ties %in% pleuronectidae_family$Genus) == 1){
+      LCA = "Pleuronectidae sp."
+    } else if(mean(ties %in% ziphiidae_family$Genus)){
+      LCA = "Ziphiidae sp."
+    } else if(mean(ties %in% salmonidae_family$Genus)){
+    LCA = "Salmonidae sp."
+    } else if(mean(ties %in% mugilidae_family$Genus)){
+      LCA = "Mugilidae sp."
+    } else {
+      LCA = "Uncertain"
+    }
+  }
+  return(LCA)
+}
+```
 
 Additionally, we also need a reference list of genera within Families that we want to break ties.
 
