@@ -417,18 +417,10 @@ Additionally, we also need a reference list of genera within Families that we wa
 
 -   For species tied within the same genus, we can always assign LCA - it is the genus sp.
 -   For species tied between different genera, but within the same family, we can break the tie, if we have a reference. For now, we have references for the families **Pleuronectidae**, **Ziphiidae**, **Salmonidae**, **Mugilidae** and **Delphinidae**.
--   For ties outside the above mentioned situations, we cannot establish LCA and we are not confident on the best hit, therefore, we assigned them as **Uncertain**.
+-   For ties between different families, we cannot establish LCA and we are not confident on the best hit, therefore, we assigned them as **Uncertain**. [*note* we are trying to implement order level]
 -   Note: if genera from different families are tied, we assign to **Uncertain**.
 
-Load the functions into your R session:
-
-```{r, eval = FALSE}
-source("./R/check_ties.R")
-source("./R/assign_LCA.R")
-```
-
 Load the reference list for families **Pleuronectidae**, **Ziphiidae** and **Delphinidae**.
-
 
 **NOTE: We will change this segment (add taxize package)**
 
