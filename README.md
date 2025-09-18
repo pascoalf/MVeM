@@ -175,12 +175,13 @@ are stored and what they refer to. Note that you will need to change the
 path according to your own files.
 
 ``` r
-path <- "./ATLANTIDA_eDNA" # CHANGE ME to the directory containing the fastq files after unzipping.
+path <- "./path_to_directory" # CHANGE ME to the directory containing the fastq files after unzipping.
 # verify files in path
 list.files(path)
 
 # Forward and reverse fastq file names have format: SAMPLENAME_R1_001.fastq and SAMPLENAME_R2_001.fastq
 # CHANGE according to your file names
+# note: fastq.gz files usually don't need to be decompressed for this step
 fnFs <- sort(list.files(path, pattern="_R1_001.fastq", full.names = TRUE))
 fnFs
 fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
