@@ -227,15 +227,21 @@ plotQualityProfile(fnFs, aggregate = TRUE)
 plotQualityProfile(fnRs, aggregate = TRUE)
 ```
 
+Note: You can save the plot in the results, for example, for later use.
+
 ## Filter and trim reads
 
-Based on quality profiles, decide the trimming parameters. To remve
-nucleotides in the end of the reads, set the parameter *truncLen*, where
-the first value corresponds to the trimming of the forward reads and the
-second is for the reverse reads.
+Based on quality profiles, decide the trimming parameters. Specifically,
+*truncLen* is used to trim reads by removing nucleotides at the end of
+the reads. In *truncLen*, the first value corresponds to the trimming of
+the forward reads and the second is for the reverse reads. While
+deciding the trimming, take into account the expected read length of
+forward and reverse reads, which need, at least, 12 bp to merge at a
+later step. For more details on DADA2 parameters see:
+<https://benjjneb.github.io/dada2/tutorial.html>
 
 If the primers are present in your samples and you are sure that they
-are right at the beggining of the sequence, then you can use *trimLeft*
+are right at the beginning of the sequence, then you can use *trimLeft*
 to remove them.
 
 All other parameters are set to default.
@@ -243,7 +249,8 @@ All other parameters are set to default.
 **Note:** If you are using a Windows OS, set multithread to FALSE.
 
 ``` r
-out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,210), 
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
+                     truncLen=c(240,210), ## change according to quality profiles
                      trimLeft = c(nchar("AGACGAGAAGACCCTATG"), ##remove primers
                                   nchar("GGATTGCGCTGTTATCCC")), 
                      maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE, 
