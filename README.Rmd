@@ -383,6 +383,13 @@ all_species_info <- map(.x = all_species, .f = ~wormsbymatchnames(.x)) %>%
   select(kingdom, phylum, class, order, family, genus)
 ```
 
+Merge taxonomic information to blast hits: 
+
+```{r}
+# Merge taxonomic information to blast hits
+top_hits_with_taxa_info <- top_hits %>% 
+  left_join(all_species_info, by = c("Scientific.name" = "scientificname"))
+```
 
 
 It is possible to obtain multiple hits with the same scores, but different species. Usually, within the same genus or within the same family. We call these situations *ties*.
