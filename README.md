@@ -51,191 +51,10 @@ Packages required for steps in R:
 ``` r
 # Packages used
 library(dada2); packageVersion("dada2") ## we used 1.22
-```
-
-    ## Loading required package: Rcpp
-
-    ## [1] '1.22.0'
-
-``` r
 library(ShortRead)
-```
-
-    ## Loading required package: BiocGenerics
-
-    ## 
-    ## Attaching package: 'BiocGenerics'
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     IQR, mad, sd, var, xtabs
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     anyDuplicated, append, as.data.frame, basename, cbind, colnames,
-    ##     dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
-    ##     grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
-    ##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
-    ##     rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
-    ##     union, unique, unsplit, which.max, which.min
-
-    ## Loading required package: BiocParallel
-
-    ## Loading required package: Biostrings
-
-    ## Loading required package: S4Vectors
-
-    ## Loading required package: stats4
-
-    ## 
-    ## Attaching package: 'S4Vectors'
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     expand.grid, I, unname
-
-    ## Loading required package: IRanges
-
-    ## Loading required package: XVector
-
-    ## Loading required package: GenomeInfoDb
-
-    ## 
-    ## Attaching package: 'Biostrings'
-
-    ## The following object is masked from 'package:base':
-    ## 
-    ##     strsplit
-
-    ## Loading required package: Rsamtools
-
-    ## Loading required package: GenomicRanges
-
-    ## Loading required package: GenomicAlignments
-
-    ## Loading required package: SummarizedExperiment
-
-    ## Loading required package: MatrixGenerics
-
-    ## Loading required package: matrixStats
-
-    ## 
-    ## Attaching package: 'MatrixGenerics'
-
-    ## The following objects are masked from 'package:matrixStats':
-    ## 
-    ##     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
-    ##     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
-    ##     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
-    ##     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
-    ##     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
-    ##     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
-    ##     colWeightedMeans, colWeightedMedians, colWeightedSds,
-    ##     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
-    ##     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
-    ##     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
-    ##     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
-    ##     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
-    ##     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
-    ##     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
-    ##     rowWeightedSds, rowWeightedVars
-
-    ## Loading required package: Biobase
-
-    ## Welcome to Bioconductor
-    ## 
-    ##     Vignettes contain introductory material; view with
-    ##     'browseVignettes()'. To cite Bioconductor, see
-    ##     'citation("Biobase")', and for packages 'citation("pkgname")'.
-
-    ## 
-    ## Attaching package: 'Biobase'
-
-    ## The following object is masked from 'package:MatrixGenerics':
-    ## 
-    ##     rowMedians
-
-    ## The following objects are masked from 'package:matrixStats':
-    ## 
-    ##     anyMissing, rowMedians
-
-``` r
 library(seqinr) # to make FASTA file
-```
-
-    ## 
-    ## Attaching package: 'seqinr'
-
-    ## The following object is masked from 'package:matrixStats':
-    ## 
-    ##     count
-
-    ## The following object is masked from 'package:Biostrings':
-    ## 
-    ##     translate
-
-``` r
 library(dplyr)
 ```
-
-    ## 
-    ## Attaching package: 'dplyr'
-
-    ## The following object is masked from 'package:seqinr':
-    ## 
-    ##     count
-
-    ## The following object is masked from 'package:ShortRead':
-    ## 
-    ##     id
-
-    ## The following objects are masked from 'package:GenomicAlignments':
-    ## 
-    ##     first, last
-
-    ## The following object is masked from 'package:Biobase':
-    ## 
-    ##     combine
-
-    ## The following object is masked from 'package:matrixStats':
-    ## 
-    ##     count
-
-    ## The following objects are masked from 'package:GenomicRanges':
-    ## 
-    ##     intersect, setdiff, union
-
-    ## The following objects are masked from 'package:Biostrings':
-    ## 
-    ##     collapse, intersect, setdiff, setequal, union
-
-    ## The following object is masked from 'package:GenomeInfoDb':
-    ## 
-    ##     intersect
-
-    ## The following object is masked from 'package:XVector':
-    ## 
-    ##     slice
-
-    ## The following objects are masked from 'package:IRanges':
-    ## 
-    ##     collapse, desc, intersect, setdiff, slice, union
-
-    ## The following objects are masked from 'package:S4Vectors':
-    ## 
-    ##     first, intersect, rename, setdiff, setequal, union
-
-    ## The following objects are masked from 'package:BiocGenerics':
-    ## 
-    ##     combine, intersect, setdiff, union
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     filter, lag
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, setequal, union
 
 # Obtain unique sequences using DADA2
 
@@ -425,7 +244,7 @@ At this stage, you can save the ASV table for later use:
 ASV_table <- seqtab.nochim
 
 # Create .csv file
-write.table(seqtab.nochim, file='ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
+write.table(seqtab.nochim, file='./results/ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
 ```
 
 ## Export reads to a FASTA file
@@ -478,8 +297,10 @@ Please see installation instructions at:
 Blast parameters: - Minimum percentage identity: 99.0% - Maximum evalue:
 10⁻⁵ - Minimum query cover: 80%
 
+**Note**: Don’t forget to change the path and file names.
+
 ``` bash
-blastn -db nt -query ASV_atlantida.fasta -out blast_results_atlantida -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
+blastn -db nt -query ./results/ASV.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
 ```
 
 This command returns a table named blast_results (you can change the
@@ -497,43 +318,23 @@ For this section we will need additional pacakges:
 
 ``` r
 library(tidyr)
-```
-
-    ## 
-    ## Attaching package: 'tidyr'
-
-    ## The following object is masked from 'package:S4Vectors':
-    ## 
-    ##     expand
-
-``` r
 library(ulrb)
 library(stringr)
 library(purrr)
+library(readxl)
+library(worms)
 ```
 
-    ## 
-    ## Attaching package: 'purrr'
+    ## Loading required package: httr
 
-    ## The following object is masked from 'package:ShortRead':
-    ## 
-    ##     compose
+    ## Loading required package: plyr
 
-    ## The following object is masked from 'package:GenomicRanges':
     ## 
-    ##     reduce
+    ## Attaching package: 'plyr'
 
-    ## The following object is masked from 'package:XVector':
+    ## The following object is masked from 'package:purrr':
     ## 
     ##     compact
-
-    ## The following object is masked from 'package:IRanges':
-    ## 
-    ##     reduce
-
-``` r
-library(readxl)
-```
 
 The raw blast results include all the hits. Therefore, we need to apply
 multiple filters to obtain the best hits. To do so, we go back to R.
@@ -542,7 +343,7 @@ Start by loading the blast results into your R session:
 
 ``` r
 # load blast results
-all_hits <- read.csv("./blast_results", header = FALSE, # change file path as needed
+all_hits <- read.csv("./results/blast_results", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
                                    "Subject sequence length",   "evalue", "Bit Score",
@@ -629,6 +430,19 @@ top_hits <- filtered_hits %>%
   ungroup()
 ```
 
+## Obtain full taxonomy for all identified species
+
+``` r
+# Get all species
+all_species <- top_hits$Scientific.name %>% unique()
+
+# make data frame with full taxonomy of species
+# may take a while
+all_species_info <- map(.x = all_species, .f = ~wormsbymatchnames(.x)) %>% 
+  bind_rows() %>% 
+  select(kingdom, phylum, class, order, family, genus)
+```
+
 It is possible to obtain multiple hits with the same scores, but
 different species. Usually, within the same genus or within the same
 family. We call these situations *ties*.
@@ -704,11 +518,11 @@ and **Delphinidae**.
 
 ``` r
 # Add reference for families
-delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
-pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
-ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
-salmonidae_family <- read.table("Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
-mugilidae_family <- read.table("Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
+delphinidae_family <- read.table("./refs/delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
+pleuronectidae_family <- read.table("./refs/pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
+ziphiidae_family <- read.table("./refs/ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
+salmonidae_family <- read.table("./refs/Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
+mugilidae_family <- read.table("./refs/Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
 
 ## alternative to explore:
 upstream("Sardina pilchardus", db = "itis", upto = "genus") ## to get genus
@@ -855,14 +669,9 @@ library(vegan)
 
     ## Loading required package: permute
 
-    ## 
-    ## Attaching package: 'permute'
-
-    ## The following object is masked from 'package:seqinr':
-    ## 
-    ##     getType
-
     ## Loading required package: lattice
+
+    ## This is vegan 2.6-6
 
 We provide some examples of data analyses below.
 
