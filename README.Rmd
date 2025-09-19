@@ -266,8 +266,10 @@ Blast parameters:
  -   Maximum evalue: 10⁻⁵
  -   Minimum query cover: 80%
 
+**Note**: Don't forget to change the path and file names.
+
 ```{r, engine = 'bash', eval = FALSE}
-blastn -db nt -query ASV_atlantida.fasta -out blast_results_atlantida -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
+blastn -db nt -query ./results/ASV.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
 ```
 
 This command returns a table named blast_results (you can change the name as needed). The parameter *-outfmt* determines the format and variables present in the table.
@@ -286,6 +288,7 @@ library(ulrb)
 library(stringr)
 library(purrr)
 library(readxl)
+library(worms)
 ```
 
 The raw blast results include all the hits. Therefore, we need to apply multiple filters to obtain the best hits. To do so, we go back to R.
@@ -294,7 +297,7 @@ Start by loading the blast results into your R session:
 
 ```{r, eval = FALSE}
 # load blast results
-all_hits <- read.csv("./blast_results", header = FALSE, # change file path as needed
+all_hits <- read.csv("./results/blast_results", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",	"Subject accession",
                                    "Subject sequence length",	"evalue", "Bit Score",
@@ -366,6 +369,22 @@ top_hits <- filtered_hits %>%
   ungroup()
 ```
 
+
+## Obtain full taxonomy for all identified species
+
+```{r, eval = FALSE}
+# Get all species
+all_species <- top_hits$Scientific.name %>% unique()
+
+# make data frame with full taxonomy of species
+# may take a while
+all_species_info <- map(.x = all_species, .f = ~wormsbymatchnames(.x)) %>% 
+  bind_rows() %>% 
+  select(kingdom, phylum, class, order, family, genus)
+```
+
+
+
 It is possible to obtain multiple hits with the same scores, but different species. Usually, within the same genus or within the same family. We call these situations *ties*.
 
 To solve ties we need the following functions:
@@ -429,11 +448,11 @@ Load the reference list for families **Pleuronectidae**, **Ziphiidae** and **Del
 
 ```{r, eval = FALSE}
 # Add reference for families
-delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
-pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
-ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
-salmonidae_family <- read.table("Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
-mugilidae_family <- read.table("Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
+delphinidae_family <- read.table("./refs/delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
+pleuronectidae_family <- read.table("./refs/pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
+ziphiidae_family <- read.table("./refs/ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
+salmonidae_family <- read.table("./refs/Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
+mugilidae_family <- read.table("./refs/Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
 
 ## alternative to explore:
 upstream("Sardina pilchardus", db = "itis", upto = "genus") ## to get genus
