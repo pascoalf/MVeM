@@ -266,8 +266,10 @@ Blast parameters:
  -   Maximum evalue: 10⁻⁵
  -   Minimum query cover: 80%
 
+**Note**: Don't forget to change the path and file names.
+
 ```{r, engine = 'bash', eval = FALSE}
-blastn -db nt -query ASV.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
+blastn -db nt -query ./results/ASV.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
 ```
 
 This command returns a table named blast_results (you can change the name as needed). The parameter *-outfmt* determines the format and variables present in the table.
@@ -294,7 +296,7 @@ Start by loading the blast results into your R session:
 
 ```{r, eval = FALSE}
 # load blast results
-all_hits <- read.csv("./blast_results", header = FALSE, # change file path as needed
+all_hits <- read.csv("./results/blast_results", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",	"Subject accession",
                                    "Subject sequence length",	"evalue", "Bit Score",
