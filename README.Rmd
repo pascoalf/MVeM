@@ -267,7 +267,7 @@ Blast parameters:
  -   Minimum query cover: 80%
 
 ```{r, engine = 'bash', eval = FALSE}
-blastn -db nt -query ASV_atlantida.fasta -out blast_results_atlantida -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
+blastn -db nt -query ASV.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
 ```
 
 This command returns a table named blast_results (you can change the name as needed). The parameter *-outfmt* determines the format and variables present in the table.
