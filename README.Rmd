@@ -44,7 +44,7 @@ Primer removal is also possible in the DADA2 section of code, presented below. H
 
 Packages required for steps in R:
 
-```{r}
+```{r, eval = FALSE}
 # Packages used
 library(dada2); packageVersion("dada2") ## we used 1.22
 library(ShortRead)
@@ -219,7 +219,7 @@ At this stage, you can save the ASV table for later use:
 ASV_table <- seqtab.nochim
 
 # Create .csv file
-write.table(seqtab.nochim, file='ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
+write.table(seqtab.nochim, file='./results/ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
 ```
 
 ## Export reads to a FASTA file
