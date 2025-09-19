@@ -385,7 +385,7 @@ all_species_info <- map(.x = all_species, .f = ~wormsbymatchnames(.x)) %>%
 
 Merge taxonomic information to blast hits: 
 
-```{r}
+```{r, eval = FALSE}
 # Merge taxonomic information to blast hits
 top_hits_with_taxa_info <- top_hits %>% 
   left_join(all_species_info, by = c("Scientific.name" = "scientificname"))

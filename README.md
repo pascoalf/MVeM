@@ -9,8 +9,6 @@ stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://li
 
 # Introduction
 
-The Marine Vertebrate eDNA Metabarcoding bioinformatic pipeline (MVeM) is a comprehensive analysis workflow for high-throughput metabarcoding data, designed to detect marine vertebrate species, particularly teleost fish, elasmobranchs, and cetaceans, in environmental DNA samples. The pipeline aims to support the growing efforts to improve the reliability, reproducibility, and accessibility of eDNA methods. The pipeline is further described in Afonso and Álvarez-González et al. (in preparation).
-
 # Preliminary steps
 
 Before starting, we advise the user to create a dedicated directory
@@ -445,6 +443,14 @@ all_species_info <- map(.x = all_species, .f = ~wormsbymatchnames(.x)) %>%
   select(kingdom, phylum, class, order, family, genus)
 ```
 
+Merge taxonomic information to blast hits:
+
+``` r
+# Merge taxonomic information to blast hits
+top_hits_with_taxa_info <- top_hits %>% 
+  left_join(all_species_info, by = c("Scientific.name" = "scientificname"))
+```
+
 It is possible to obtain multiple hits with the same scores, but
 different species. Usually, within the same genus or within the same
 family. We call these situations *ties*.
@@ -864,22 +870,15 @@ ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
 
 # References
 
--   Afonso, L., Álvarez-González, M., Pascoal, F. Saavedra, C., Pierce, G.,
-    Correia, A.M., Magalhães, C., Suarez-Bregua, P. (in prep). Refining
-    Molecular Monitoring Techniques: eDNA Methods and Metabarcoding
-    to Detect Marine Vertebrates.
-
--   Altschul, S.F., Gish, W., Miller, W., Myers, E.W. and Lipman,
-    D.J. (1990). Basic local alignment search tool. Journal of Molecular
-    Biology, 215(3), pp.403-410.
-
 -   Andrews, S. (2010). FastQC: A Quality Control Tool for High
     Throughput Sequence Data \[Online\]. Available online at:
     <http://www.bioinformatics.babraham.ac.uk/projects/fastqc/>
 
--   Benson, D. A., Cavanaugh, M., Clark, K., Karsch-Mizrachi, I.,
-    Lipman, D. J., Ostell, J., & Sayers, E. W. (2013). GenBank. Nucleic
-    acids research, 41(D1), D36-D42.
+-   Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize
+    analysis results for multiple tools and samples in a single report.
+    Bioinformatics. 2016 Oct 1;32(19):3047-8. doi:
+    10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411;
+    PMCID: PMC5039924.
 
 -   Callahan BJ, McMurdie PJ, Rosen MJ, Han AW, Johnson AJ, Holmes SP.
     DADA2: High-resolution sample inference from Illumina amplicon data.
@@ -889,10 +888,11 @@ ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
 -   Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J.,
     Bealer, K., and Madden, T.L. 2009. BLAST+: architecture and
     applications. BMC Bioinformatics, 10, 421.
-    
--   Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize
-    analysis results for multiple tools and samples in a single report.
-    Bioinformatics. 2016 Oct 1;32(19):3047-8. doi:
-    10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411;
-    PMCID: PMC5039924.
 
+-   Altschul, S.F., Gish, W., Miller, W., Myers, E.W. and Lipman,
+    D.J., 1990. Basic local alignment search tool. Journal of Molecular
+    Biology, 215(3), pp.403-410.
+
+-   Benson, D. A., Cavanaugh, M., Clark, K., Karsch-Mizrachi, I.,
+    Lipman, D. J., Ostell, J., & Sayers, E. W. (2013). GenBank. Nucleic
+    acids research, 41(D1), D36-D42.
