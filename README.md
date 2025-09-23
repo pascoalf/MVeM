@@ -575,7 +575,7 @@ abundance_table_long_filtered <- abundance_table_long %>%
   mutate(relativeAbundance = Abundance*100/sum(Abundance)) %>% 
   mutate(Abundance = ifelse(relativeAbundance > 0.01, Abundance, 0),
          Abundance = ifelse(is.na(Abundance), 0, Abundance)) %>% 
-  select(-Sequence.y, relativeAbundance) %>% 
+  select(-Sequence.y, -relativeAbundance) %>% 
   rename(Sequence = Sequence.x)
 ```
 
@@ -619,6 +619,9 @@ write.csv(abundance_table_no_cont, file = "results/abundance_table_long_eDNA.csv
 write.csv(abundance_table_no_cont_wide, file = "results/abundance_table_wide_eDNA_filtered.csv", row.names = FALSE)
 ```
 
+*Note*: ASVs removed during contamination removal process are marked as
+NAs in the wide format table.
+
 # Verify results
 
 For this section we need additional packages:
@@ -627,8 +630,6 @@ For this section we need additional packages:
 library(vegan)
 ```
 
-    ## Loading required package: permute
-
 We provide some examples of data analyses below.
 
 ## Rarefaction curves
@@ -636,22 +637,34 @@ We provide some examples of data analyses below.
 ``` r
 # step for rarefaction curve
 # remove unnecessary columns
-ASV_matrix.1 <- abundance_table_wide %>% 
+ASV_matrix.1 <- abundance_table_no_cont_wide %>% 
   select(-Sequence, -Scientific.name) 
 
 #
-asc_col <- ASV_matrix.1$ASV
+asv_col <- ASV_matrix.1$ASV
 ASV_matrix.1$ASV <- NULL
-rownames(ASV_matrix.1) <- asc_col
+rownames(ASV_matrix.1) <- asv_col
 
 #  
 ASV_matrix <- ASV_matrix.1 %>% t()
+
+# replace NA's to 0
+ASV_matrix[is.na(ASV_matrix)] <- 0
+
+# replace sample name to shorter version
+rownames(ASV_matrix) <- str_remove(rownames(ASV_matrix), "-16S_S1_L001_R1_001")
+
 # rarefaction curve
 rarecurve(ASV_matrix, 
           step = 500, 
           xlab = "Sequencing depth",
           ylab = "Number of ASVs")
 ```
+
+<figure>
+<img src="results/rarefaction_curve_example.png" alt="image" />
+<figcaption aria-hidden="true">image</figcaption>
+</figure>
 
 ## Example of quick diversity analysis
 
