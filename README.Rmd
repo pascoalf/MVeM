@@ -439,31 +439,11 @@ assign_LCA <- function(x){
 }
 ```
 
-Additionally, we also need a reference list of genera within Families that we want to break ties.
-
-**Note:**
-
+**Note on assign_LCA():**
 -   For species tied within the same genus, we can always assign LCA - it is the genus sp.
--   For species tied between different genera, but within the same family, we can break the tie, if we have a reference. For now, we have references for the families **Pleuronectidae**, **Ziphiidae**, **Salmonidae**, **Mugilidae** and **Delphinidae**.
--   For ties between different families, we cannot establish LCA and we are not confident on the best hit, therefore, we assigned them as **Uncertain**. [*note* we are trying to implement order level]
--   Note: if genera from different families are tied, we assign to **Uncertain**.
+- Likewise, we can break ties up to family level (that is, assign LCA up to order level).
+-   Note: if genera from different orders are tied, we assign to **Uncertain**.
 
-Load the reference list for families **Pleuronectidae**, **Ziphiidae** and **Delphinidae**.
-
-**NOTE: We will change this segment (add taxize package)**
-
-```{r, eval = FALSE}
-# Add reference for families
-delphinidae_family <- read.table("./refs/delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
-pleuronectidae_family <- read.table("./refs/pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
-ziphiidae_family <- read.table("./refs/ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
-salmonidae_family <- read.table("./refs/Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
-mugilidae_family <- read.table("./refs/Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
-
-## alternative to explore:
-upstream("Sardina pilchardus", db = "itis", upto = "genus") ## to get genus
-upstream("Sardina pilchardus", db = "itis", upto = "family") ## to get families
-```
 
 Get best hits, without ties:
 

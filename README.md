@@ -475,67 +475,36 @@ check_ties <- function(x){
 ``` r
 # assign_LCA function
 assign_LCA <- function(x){
-  # identify ASV with ties to break
-  ties <- check_ties(x)
+  # make possible LCAs
+  # no family ties, assign family as LCA
+  fam_LCA <- x %>% 
+    pull(family) %>% 
+    unique()
+  genus_LCA <- x %>% 
+    pull(genus) %>% 
+    unique()
+  species_LCA <- x %>% 
+    pull(Scientific.name) %>% 
+    unique()
   
-  if(length(ties) == 1){
-    # untie within the same genus
-    LCA = paste(ties, "sp.")
-    
+  #
+  if(length(fam_LCA) > 1){
+    LCA <- "Uncertain"
+  } else if(length(genus_LCA) > 1){
+    LCA <- fam_LCA
+  } else if(length(species_LCA) > 1){
+    LCA <- genus_LCA
   } else {
-    # check if ties are from Delphinidae family
-    if(mean(ties %in% delphinidae_family$Genus) == 1){
-      LCA = "Delphinidae sp."
-    } else if(mean(ties %in% pleuronectidae_family$Genus) == 1){
-      LCA = "Pleuronectidae sp."
-    } else if(mean(ties %in% ziphiidae_family$Genus)){
-      LCA = "Ziphiidae sp."
-    } else if(mean(ties %in% salmonidae_family$Genus)){
-    LCA = "Salmonidae sp."
-    } else if(mean(ties %in% mugilidae_family$Genus)){
-      LCA = "Mugilidae sp."
-    } else {
-      LCA = "Uncertain"
-    }
+    LCA <- species_LCA
   }
   return(LCA)
 }
 ```
 
-Additionally, we also need a reference list of genera within Families
-that we want to break ties.
-
-**Note:**
-
--   For species tied within the same genus, we can always assign LCA -
-    it is the genus sp.
--   For species tied between different genera, but within the same
-    family, we can break the tie, if we have a reference. For now, we
-    have references for the families **Pleuronectidae**, **Ziphiidae**,
-    **Salmonidae**, **Mugilidae** and **Delphinidae**.
--   For ties between different families, we cannot establish LCA and we
-    are not confident on the best hit, therefore, we assigned them as
-    **Uncertain**. \[*note* we are trying to implement order level\]
--   Note: if genera from different families are tied, we assign to
-    **Uncertain**.
-
-Load the reference list for families **Pleuronectidae**, **Ziphiidae**
-and **Delphinidae**.
-
-**NOTE: We will change this segment (add taxize package)**
-
-``` r
-# Add reference for families
-delphinidae_family <- read.table("./refs/delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
-pleuronectidae_family <- read.table("./refs/pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
-ziphiidae_family <- read.table("./refs/ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
-salmonidae_family <- read.table("./refs/Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
-mugilidae_family <- read.table("./refs/Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
-
-## alternative to explore:
-upstream("Sardina pilchardus", db = "itis", upto = "genus") ## to get genus
-upstream("Sardina pilchardus", db = "itis", upto = "family") ## to get families
-```
+**Note on assign_LCA():** - For species tied within the same genus, we
+can always assign LCA - it is the genus sp. - Likewise, we can break
+ties up to family level (that is, assign LCA up to order level). - Note:
+if genera from different orders are tied, we assign to **Uncertain**.
 
 Get best hits, without ties:
 
@@ -676,10 +645,6 @@ library(vegan)
 ```
 
     ## Loading required package: permute
-
-    ## Loading required package: lattice
-
-    ## This is vegan 2.6-6
 
 We provide some examples of data analyses below.
 
