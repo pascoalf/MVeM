@@ -413,28 +413,27 @@ check_ties <- function(x){
 ```{r}
 # assign_LCA function
 assign_LCA <- function(x){
-  # identify ASV with ties to break
-  ties <- check_ties(x)
+  # make possible LCAs
+  # no family ties, assign family as LCA
+  fam_LCA <- x %>% 
+    pull(family) %>% 
+    unique()
+  genus_LCA <- x %>% 
+    pull(genus) %>% 
+    unique()
+  species_LCA <- x %>% 
+    pull(Scientific.name) %>% 
+    unique()
   
-  if(length(ties) == 1){
-    # untie within the same genus
-    LCA = paste(ties, "sp.")
-    
+  #
+  if(length(fam_LCA) > 1){
+    LCA <- "Uncertain"
+  } else if(length(genus_LCA) > 1){
+    LCA <- fam_LCA
+  } else if(length(species_LCA) > 1){
+    LCA <- genus_LCA
   } else {
-    # check if ties are from Delphinidae family
-    if(mean(ties %in% delphinidae_family$Genus) == 1){
-      LCA = "Delphinidae sp."
-    } else if(mean(ties %in% pleuronectidae_family$Genus) == 1){
-      LCA = "Pleuronectidae sp."
-    } else if(mean(ties %in% ziphiidae_family$Genus)){
-      LCA = "Ziphiidae sp."
-    } else if(mean(ties %in% salmonidae_family$Genus)){
-    LCA = "Salmonidae sp."
-    } else if(mean(ties %in% mugilidae_family$Genus)){
-      LCA = "Mugilidae sp."
-    } else {
-      LCA = "Uncertain"
-    }
+    LCA <- species_LCA
   }
   return(LCA)
 }
