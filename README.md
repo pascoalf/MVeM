@@ -587,51 +587,36 @@ Before this step, fill the **sample_control_map_template.xlsx** file in
 
 ``` r
 # Load sample_control_map
-readxl::read_xlsx(sample_control_map_example.xlsx)
-# Create control map, connecting samples to their controls
-sample_control_map <- list(
-  "M1-1-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-1-16S_S1_L001_R1_001"),
-  "M1-2-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-2-16S_S1_L001_R1_001"),
-  "M1-3-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-3-16S_S1_L001_R1_001"),
-  "M2-1-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-1-16S_S1_L001_R1_001"),
-  "M2-1-NZY-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-1-16S_S1_L001_R1_001"),
-  "M2-2-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-2-16S_S1_L001_R1_001"),
-  "M2-2-NZY-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-2-16S_S1_L001_R1_001"),
-  "M2-3-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001"),
-  "M2-3-NZY-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001"),
-  "M3-1-16S_S1_L001_R1_001" = c("CE3-16S_S1_L001_R1_001", "CF2-1-16S_S1_L001_R1_001"),
-  "M3-2-16S_S1_L001_R1_001" = c("CE3-16S_S1_L001_R1_001", "CF2-2-16S_S1_L001_R1_001"),
-  "M3-3-16S_S1_L001_R1_001" = c("CE3-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001")
-)
+sample_control_map_df <- readxl::read_xlsx("refs/sample_control_map_example_complete.xlsx")
 
-# Identify ASVs present in control samples
-asvs_in_controls <- abundance_table_long_filtered %>%
-  filter(Sample %in% unlist(sample_control_map),
-         Abundance > 0) %>%
-  distinct(Sample, ASV)
+# convert to long format 
+sample_control_map_long <- sample_control_map_df %>% 
+  pivot_longer(cols = c("Extraction_control", 
+                        "Filtration_control", 
+                        "PCR_control"),
+               values_to = "Control_ID",
+               names_to = "Control_type")
 
-# Remove those ASVs from their corresponding environmental samples
-for (sample_name in names(sample_control_map)) {
-  controls <- sample_control_map[[sample_name]]
-  
-  contaminant_asvs <- asvs_in_controls %>%
-    filter(Sample %in% controls) %>%
-    pull(ASV) %>%
-    unique()
-  
-  abundance_table_long_filtered <- abundance_table_long_filtered %>%
-    mutate(Abundance = ifelse(Sample == sample_name & ASV %in% contaminant_asvs, 0, Abundance))
-}
+# Load function to remove contamination, based on control map
+source("./R/remove_contamination.R")
 
-# Save final long-format abundance table
-write.csv(abundance_table_long_filtered, file = "abundance_table_long_eDNA.csv", row.names = FALSE)
+# store sample names in a vector
+sample_names <- sample_control_map_df$Sample_name %>% unique() 
 
-# Create wide-format abundance table
-abundance_table_wide_filtered <- abundance_table_long_filtered %>% 
+# Remove contamination for all samples and re-merge in a single data frame
+abundance_table_no_cont <- map(.x = sample_names, 
+                                 .f = ~remove_contamination(data = abundance_table_long, sample = .x)) %>% 
+  bind_rows()
+
+# convert to wide format
+abundance_table_no_cont_wide <- abundance_table_no_cont %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
 
+# Save long-format abundance table
+write.csv(abundance_table_no_cont, file = "results/abundance_table_long_eDNA.csv", row.names = FALSE)
+
 # Save wide-format table
-write.csv(abundance_table_wide_filtered, file = "abundance_table_wide_eDNA_filtered.csv", row.names = FALSE)
+write.csv(abundance_table_no_cont_wide, file = "results/abundance_table_wide_eDNA_filtered.csv", row.names = FALSE)
 ```
 
 # Verify results
