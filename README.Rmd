@@ -563,6 +563,7 @@ write.csv(abundance_table_no_cont_wide, file = "results/abundance_table_wide_eDN
 For this section we need additional packages:
 ```{r, eval = FALSE}
 library(vegan)
+library(scales)
 ```
 
 We provide some examples of data analyses below.
@@ -596,22 +597,14 @@ rarecurve(ASV_matrix,
           ylab = "Number of ASVs")
 ```
 
-![image](results/rarefaction_curve_example.png)
+![Rarefaction curve example](results/rarefaction_curve_example.png)
 
 
 ## Example of quick diversity analysis
 
 ```{r, eval = FALSE}
-#
-library(readr)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(vegan)
-library(scales)
-
-# Load abundance table in wide format
-df <- read_csv("abundance_table_wide_eDNA.csv")
+# (Optional) Load abundance table in wide format
+#df <- read.csv("abundance_table_wide_eDNA.csv")
 
 # Filter to keep only target taxa (non-NA Scientific.name)
 df <- df %>% filter(!is.na(Scientific.name))
