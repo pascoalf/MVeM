@@ -628,6 +628,7 @@ For this section we need additional packages:
 
 ``` r
 library(vegan)
+library(scales)
 ```
 
 We provide some examples of data analyses below.
@@ -662,36 +663,26 @@ rarecurve(ASV_matrix,
 ```
 
 <figure>
-<img src="results/rarefaction_curve_example.png" alt="image" />
-<figcaption aria-hidden="true">image</figcaption>
+<img src="results/rarefaction_curve_example.png"
+alt="Rarefaction curve example" />
+<figcaption aria-hidden="true">Rarefaction curve example</figcaption>
 </figure>
 
 ## Example of quick diversity analysis
 
 ``` r
-#
-library(readr)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(vegan)
-library(scales)
+# (Optional) Load abundance table in wide format
+#abundance_table_no_cont_wide <- read.csv("abundance_table_no_cont_wide.csv")
 
-# Load abundance table in wide format
-df <- read_csv("abundance_table_wide_eDNA.csv")
-
-# Filter to keep only target taxa (non-NA Scientific.name)
-df <- df %>% filter(!is.na(Scientific.name))
+# Remove NAs in Scientific.name
+abundance_table_no_cont_wide <- abundance_table_no_cont_wide %>% filter(!is.na(Scientific.name))
 
 # Define and remove unwanted columns
-cols_to_remove <- c(
-  "Sequence.x", "ASV", "Sequence.y",
-  "BPCR1NZY-16S_S1_L001_R1_001", "BPCRP-16S_S1_L001_R1_001",
-  "CE1-16S_S1_L001_R1_001", "CE2-16S_S1_L001_R1_001", "CE3-16S_S1_L001_R1_001",
-  "CF1-1-16S_S1_L001_R1_001", "CF1-2-16S_S1_L001_R1_001", "CF1-3-16S_S1_L001_R1_001",
-  "CF2-1-16S_S1_L001_R1_001", "CF2-2-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001"
-)
-df_clean <- df %>% select(-any_of(cols_to_remove))
+cols_to_remove <- c("Sequence", "ASV", unique(sample_control_map_long$Control_ID))
+
+# make a shorter table
+df_clean <- abundance_table_no_cont_wide  %>% 
+  select(-any_of(cols_to_remove))
 
 # Create ASV matrix
 # Ensure unique rownames (from first column, presumably ASV IDs)
@@ -720,18 +711,29 @@ alpha_df <- data.frame(
   Shannon = diversity(asv_matrix_t, index = "shannon")
 )
 
+# tidy alpha_df
+alpha_tidy <- alpha_df %>% 
+  pivot_longer(cols = c("Observed", "Shannon"), 
+               names_to = "Metric", 
+               values_to = "Score")
+
 # Observed Richness (Boxplot only)
-ggplot(alpha_df, aes(y = Observed)) +
+ggplot(alpha_tidy, aes(y = Score)) +
   geom_boxplot(fill = "steelblue", alpha = 0.8) +
-  labs(title = "Observed ASVs per Sample", x = "", y = "Observed Richness") +
-  theme_minimal()
+  labs(title = "Alpha diversity", 
+       x = "", 
+       y = "") +
+  facet_wrap(~Metric, scales = "free_y")
+```
 
-# Shannon Index (Boxplot only)
-ggplot(alpha_df, aes(y = Shannon)) +
-  geom_boxplot(fill = "darkgreen", alpha = 0.8) +
-  labs(title = "Shannon Diversity per Sample", x = "", y = "Shannon Index") +
-  theme_minimal()
+<figure>
+<img src="results/alpha_boxplot_example.png"
+alt="Alpha diversity - boxplot example" />
+<figcaption aria-hidden="true">Alpha diversity - boxplot
+example</figcaption>
+</figure>
 
+``` r
 # Beta Diversity (Bray-Curtis)
 # Calculate Bray-Curtis dissimilarity
 bray_dist <- vegdist(asv_matrix_t, method = "bray")
