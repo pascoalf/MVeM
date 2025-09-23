@@ -510,7 +510,7 @@ Get best hits, without ties:
 
 ``` r
 # best hits, with LCA
-taxonomic_assignments <- top_hits %>%
+taxonomic_assignments <- top_hits_with_taxa_info %>%
   group_by(Query.accession) %>% 
   nest() %>% 
   mutate(LCA = map(.x = data, 
@@ -570,15 +570,13 @@ the removal of ASVs below 0.01% relative abundance.
 
 ``` r
 # Filter local low abundance (< 0.01%)
-total_reads <- abundance_table_long %>%
-  group_by(Sample) %>%
-  summarise(total = sum(Abundance, na.rm = TRUE))
-
-abundance_table_long_filtered <- abundance_table_long %>%
-  left_join(total_reads, by = "Sample") %>%
-  mutate(freq = Abundance / total * 100,
-         Abundance = ifelse(freq < 0.01, 0, Abundance)) %>%
-  select(-total, -freq)
+abundance_table_long_filtered <- abundance_table_long %>% 
+  group_by(Sample) %>% 
+  mutate(relativeAbundance = Abundance*100/sum(Abundance)) %>% 
+  mutate(Abundance = ifelse(relativeAbundance > 0.01, Abundance, 0),
+         Abundance = ifelse(is.na(Abundance), 0, Abundance)) %>% 
+  select(-Sequence.y, relativeAbundance) %>% 
+  rename(Sequence = Sequence.x)
 ```
 
 **Identify ASVs from control samples and filter them out**
