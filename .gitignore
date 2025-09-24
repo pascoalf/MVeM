@@ -54,3 +54,6 @@ MVeM.Rproj
 
 #
 input/
+
+#
+validate_file.R
