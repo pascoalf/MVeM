@@ -103,11 +103,31 @@ Inspect quality of sequencing.
 plotQualityProfile(fnFs[1:5])
 # Quality of reverse reads
 plotQualityProfile(fnRs[1:5])
+```
 
+<figure>
+<img src="results/quality_forward.png"
+alt="Quality profiles of forward reads - 5 files" />
+<figcaption aria-hidden="true">Quality profiles of forward reads - 5
+files</figcaption>
+</figure>
+
+<figure>
+<img src="results/quality_reverse.png"
+alt="Quality profiles of reverse reads - 5 files" />
+<figcaption aria-hidden="true">Quality profiles of reverse reads - 5
+files</figcaption>
+</figure>
+
+``` r
 # To inspect many samples at once
 plotQualityProfile(fnFs, aggregate = TRUE)
 plotQualityProfile(fnRs, aggregate = TRUE)
 ```
+
+![Aggregate quality plot example for forward
+reads](results/aggregate_forward.png) ![Aggregate quality plot example
+for reverse reads](results/aggregate_reverse.png)
 
 Note: You can save the plot in the results, for example, for later use.
 
@@ -324,17 +344,6 @@ library(purrr)
 library(readxl)
 library(worms)
 ```
-
-    ## Loading required package: httr
-
-    ## Loading required package: plyr
-
-    ## 
-    ## Attaching package: 'plyr'
-
-    ## The following object is masked from 'package:purrr':
-    ## 
-    ##     compact
 
 The raw blast results include all the hits. Therefore, we need to apply
 multiple filters to obtain the best hits. To do so, we go back to R.

@@ -95,11 +95,22 @@ Inspect quality of sequencing.
 plotQualityProfile(fnFs[1:5])
 # Quality of reverse reads
 plotQualityProfile(fnRs[1:5])
+```
 
+![Quality profiles of forward reads - 5 files](results/quality_forward.png)
+
+![Quality profiles of reverse reads - 5 files](results/quality_reverse.png)
+
+```{r, eval = FALSE}
 # To inspect many samples at once
 plotQualityProfile(fnFs, aggregate = TRUE)
 plotQualityProfile(fnRs, aggregate = TRUE)
 ```
+
+
+![Aggregate quality plot example for forward reads](results/aggregate_forward.png)
+![Aggregate quality plot example for reverse reads](results/aggregate_reverse.png)
+
 
 Note: You can save the plot in the results, for example, for later use.
 
@@ -282,7 +293,7 @@ The parameter *-remote* runs the code in the NCBI dedicated server, which means 
 
 For this section we will need additional pacakges:
 
-```{r}
+```{r, eval = FALSE}
 library(tidyr)
 library(ulrb)
 library(stringr)
@@ -520,7 +531,6 @@ abundance_table_long_filtered <- abundance_table_long %>%
 **Identify ASVs from control samples and filter them out**
 
 Before this step, fill the **sample_control_map_template.xlsx** file in **refs** folder, you can follow the example file, **sample_control_map_example.xlsx**. 
-
 
 ```{r, eval = FALSE}
 # Load sample_control_map
