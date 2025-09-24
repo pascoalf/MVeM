@@ -9,6 +9,8 @@ stable](https://img.shields.io/badge/lifecycle-experimental-red.svg)](https://li
 
 # Introduction
 
+The Marine Vertebrate eDNA Metabarcoding bioinformatic pipeline (MVeM) is a comprehensive analysis workflow for high-throughput metabarcoding data, designed to detect marine vertebrate species, particularly teleost fish, elasmobranchs, and cetaceans, in environmental DNA samples. The pipeline aims to support the growing efforts to improve the reliability, reproducibility, and accessibility of eDNA methods. The pipeline is further described in Afonso and Alvarez et al. (in preparation).
+
 # Preliminary steps
 
 Before starting, we advise the user to create a dedicated directory
