@@ -108,8 +108,13 @@ plotQualityProfile(fnRs, aggregate = TRUE)
 ```
 
 
+
+
 ![Aggregate quality plot example for forward reads](results/aggregate_forward.png)
+
+
 ![Aggregate quality plot example for reverse reads](results/aggregate_reverse.png)
+
 
 
 Note: You can save the plot in the results, for example, for later use.
