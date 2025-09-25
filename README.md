@@ -44,7 +44,7 @@ We recommend using either FASTQC (Andrews, 2010) or MultiQC (Ewels,
 
 ## Pre-processing of FASTQ files
 
-If the FASTQ files include adaptor sequences and/or primers, it is
+If the FASTQ files include adapter sequences and/or primers, it is
 possible to remove them using cutadapt, for example.
 
 -   cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
