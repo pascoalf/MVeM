@@ -31,7 +31,7 @@ additional directories:
 Note: be careful to know the paths to the files you will be using later
 on.
 
-## Verify sequencig quality
+## Verify sequencing quality
 
 To verify the quality of the sequencing results, there are several tools
 available.
@@ -45,12 +45,12 @@ We recommend using either FASTQC (Andrews, 2010) or MultiQC (Ewels,
 ## Pre-processing of FASTQ files
 
 If the FASTQ files include adapter sequences and/or primers, it is
-possible to remove them using cutadapt, for example.
+possible to remove them using Cutadapt, for example.
 
--   cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
+-   Cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
 
 Primer removal is also possible in the DADA2 section of code, presented
-below. However, **if you remove the primers with cutadapt, then you must
+below. However, **if you remove the primers with Cutadapt, then you must
 not cut them again in DADA2**.
 
 # Raw reads processing in R
@@ -173,7 +173,7 @@ All other parameters are set to default.
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
                      truncLen=c(240,210), ## change according to quality profiles 
                      maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE, 
-                     compress=TRUE, multithread = TRUE,# On Windows set multithread=FALSE
+                     compress=TRUE, multithread = TRUE, # On Windows set multithread=FALSE
                      ## OPTIONAL: if you need to remove primers at this stage, you can use trimLeft
                      #trimLeft = c(nchar("AGACGAGAAGACCCTATG"),                      
                      #            nchar("GGATTGCGCTGTTATCCC"))
@@ -186,11 +186,11 @@ To distinguish true sequence variations from sequencing errors, DADA2
 calculates the probability of finding an error, given the error
 distribution. So, the next step is to learn the error rates:
 
-**Note:** This step might take a while. Again, set multithread to FALSE,
+**Note:** This step might take a while. Again, set multithread to FALSE
 if using Windows OS.
 
 ``` r
-#Learn the Error Rates
+# Learn the Error Rates
 errF <- learnErrors(filtFs, multithread=FALSE)
 errR <- learnErrors(filtRs, multithread=FALSE)
 ```
@@ -209,9 +209,9 @@ To reduce computational effort, the user may add a dereplication step:
 
 ``` r
 derepFs <- derepFastq(filtFs, verbose = TRUE)
-names(derepFs) <- sample.names
+names(derepFs) <- sample.namesF
 derepRs <- derepFastq(filtRs, verbose = TRUE)
-names(derepRs) <- sample.names
+names(derepRs) <- sample.namesR
 ```
 
 Based on error rates model, DADA will identify unique sequences:
@@ -224,19 +224,19 @@ dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 
 Next, DADA2 will merge the forward and reverse reads. If after this step
 you lost a significant amount of reads, check the trimming parameters
-(see *Filter and trim reads section*). Consider that you need at least
+(see *Filter and trim reads* section). Consider that you need at least
 12 bp of merge between forward and reverse reads (by default). We do not
 recommend changing the default overlap.
 
 ``` r
-#Merge paired reads
+# Merge paired reads
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 ```
 
 Construct an abundance table:
 
 ``` r
-#Construct sequence table
+# Construct sequence table
 seqtab <- makeSequenceTable(mergers)
 ```
 
@@ -252,10 +252,10 @@ hist(nchar(getSequences(seqtab)), main = "Distribution of Sequence lengths")
 To remove chimeric sequences:
 
 ``` r
-#Remove chimeras
+# Remove chimeras
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
 
-# check percentage of non-chimeric sequences
+# Check percentage of non-chimeric sequences
 sum(seqtab.nochim)/sum(seqtab)
 ```
 
@@ -264,11 +264,11 @@ sum(seqtab.nochim)/sum(seqtab)
 Then we can track the number of reads after each step:
 
 ``` r
-#Track reads through the pipeline
+# Track reads through the pipeline
 getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
-
 # If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
+
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
 rownames(track) <- sample.namesF ## sample.namesF is just to indicate the sample ID
 head(track)
@@ -296,10 +296,10 @@ so that we can connect the taxonomy obtained with NCBI and the abundance
 table.
 
 ``` r
-# load ASV table
-#ASV_table <- read.table("./ASV_table.tsv") ## optional: to load the abundance table previously made
+# Load ASV table
+# ASV_table <- read.table("./results/ASV_table.tsv") ## optional: to load the abundance table previously made
 
-# make data frame with unique ASVs ID and Sequence
+# Make data frame with unique ASVs ID and Sequence
 ASVs.df <- ASV_table %>% 
     colnames() %>% 
     as.data.frame() %>% 
@@ -310,7 +310,7 @@ ASVs.df <- ASV_table %>%
 # Make FASTA file 
 write.fasta(sequences = as.list(ASVs.df$Sequence), 
             names = ASVs.df$ASV, 
-            "./ASV.fasta",
+            "./results/ASV.fasta",
             as.string = TRUE)
 ```
 
@@ -333,8 +333,10 @@ Command Line Tool**.
 Please see installation instructions at:
 <https://www.ncbi.nlm.nih.gov/books/NBK569861/>
 
-Blast parameters: - Minimum percentage identity: 99.0% - Maximum evalue:
-10⁻⁵ - Minimum query cover: 80%
+Blast parameters: 
+- Minimum percentage identity: 99.0%
+- Maximum evalue: 10⁻⁵
+- Minimum query cover: 80%
 
 **Note**: Don’t forget to change the path and file names.
 
@@ -353,7 +355,7 @@ which means that the time it takes to run your samples might vary.
 
 ## Assign taxonomy based on best hits
 
-For this section we will need additional pacakges:
+For this section we will need additional packages:
 
 ``` r
 library(tidyr)
@@ -361,7 +363,7 @@ library(ulrb)
 library(stringr)
 library(purrr)
 library(readxl)
-library(worms)
+library(worrms)
 ```
 
 The raw blast results include all the hits. Therefore, we need to apply
@@ -370,7 +372,7 @@ multiple filters to obtain the best hits. To do so, we go back to R.
 Start by loading the blast results into your R session:
 
 ``` r
-# load blast results
+# Load blast results
 all_hits <- read.csv("./results/blast_results", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
@@ -387,7 +389,7 @@ all_hits <- read.csv("./results/blast_results", header = FALSE, # change file pa
 Considering the length of the reads used to classify taxonomy, and
 considering the high similarity between some species within the same
 families, it is possible to have a sequence attributed to multiple
-different species. However, based on the area of study, it might be
+different species. However, based on the study area, it might be
 possible to know beforehand that some species are not present in the
 area. Thus, in those specific situations, to improve the accuracy of the
 classification, we can remove them, using a ban list. Note that this is
@@ -397,10 +399,10 @@ introducing bias in the analysis.
 If you want to apply a ban list, you must edit the file
 **ban_list.txt**, according to your own experimental setup. If you have
 no prior knowledge of the species expected in the area, then you should
-**not** aply this step.
+**not** apply this step.
 
 ``` r
-# ban list
+# Ban list
 ban_list <- read.table("./refs/ban_list.txt", header = FALSE) %>% 
   rename(Genus = V1,
          Species = V2) %>% 
@@ -415,9 +417,9 @@ from non-16S genes. To do so, we filter all accessions based on a
 reference file with all possible target gene accessions.
 
 ``` r
-# target genes
+# Target genes
 target_genes <- read.table("refs/gene_16_list.txt", header = FALSE) ## last accessed 23 May 2025
-# some data cleaning
+# Some data cleaning
 target_genes <- target_genes %>% 
   rename(Subject.accession = V1) %>% 
   mutate(Subject.accession = str_remove(Subject.accession, "\\.\\d+"))
@@ -432,7 +434,7 @@ Filter relevant hits:
     elasmobranchs)
 
 ``` r
-# Filer valid hits
+# Filter valid hits
 filtered_hits <- all_hits %>%
   filter(Alignment.length >= 190,
         !Scientific.name %in% ban_list,
@@ -448,7 +450,7 @@ hit, we select the hits with highest bit score and percentage identity:
 ``` r
 # Obtain top hits and remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
-    # Remove environmental sample rows
+  # Remove environmental sample rows
   filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%
   # Normalize to first two words for species-level matching
   mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Scientific.name)) %>%
@@ -464,11 +466,11 @@ top_hits <- filtered_hits %>%
 # Get all species
 all_species <- top_hits$Scientific.name %>% unique()
 
-# make data frame with full taxonomy of species
-# may take a while
-all_species_info <- map(.x = all_species, .f = ~wormsbymatchnames(.x)) %>% 
+# Make data frame with full taxonomy of species
+# May take a while
+all_species_info <- map(.x = all_species, .f = ~wm_records_names(.x)) %>% 
   bind_rows() %>% 
-  select(kingdom, phylum, class, order, family, genus)
+  select(kingdom, phylum, class, order, family, genus, scientificname)
 ```
 
 Merge taxonomic information to blast hits:
@@ -490,7 +492,7 @@ To solve ties we need the following functions:
     ancestor - LCA*
 
 ``` r
-# check ties function
+# Check ties function
 check_ties <- function(x){
   x %>%
     pull(Scientific.name) %>% 
@@ -537,7 +539,7 @@ if genera from different orders are tied, we assign to **Uncertain**.
 Get best hits, without ties:
 
 ``` r
-# best hits, with LCA
+# Best hits, with LCA
 taxonomic_assignments <- top_hits_with_taxa_info %>%
   group_by(Query.accession) %>% 
   nest() %>% 
@@ -557,11 +559,11 @@ taxonomic_assignments <- top_hits_with_taxa_info %>%
          Number.of.identical.matches,
          Number.of.mismatches)
 
-# view results in your R session
+# View results in your R session
 View(taxonomic_assignments)
 
 # Save final assignments into memory
-write.csv(taxonomic_assignments, "taxonomic_assignments.csv")
+write.csv(taxonomic_assignments, "results/taxonomic_assignments.csv")
 ```
 
 ## Add taxonomic assignments to ASV abundance table
@@ -570,7 +572,7 @@ First, we need to transform the blast results in a data frame compatible
 with the abundance table. Then, we can merge them based on ASV ID.
 
 ``` r
-# transform blast results to compatible format
+# Transform blast results to compatible format
 ASV_ncbi <- taxonomic_assignments %>% 
   select(ASV = Query.accession, Scientific.name) %>% 
   filter(!is.na(Scientific.name)) %>%  # Remove unassigned ASVs
@@ -587,7 +589,7 @@ abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
 abundance_table_wide <- abundance_table_long %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
 
-# sabe wide format abundance table
+# Save wide format abundance table
 write.csv(abundance_table_wide, "results/abundance_table_wide.csv")
 ```
 
@@ -617,7 +619,7 @@ Before this step, fill the **sample_control_map_template.xlsx** file in
 # Load sample_control_map
 sample_control_map_df <- readxl::read_xlsx("refs/sample_control_map_example_complete.xlsx")
 
-# convert to long format 
+# Convert to long format 
 sample_control_map_long <- sample_control_map_df %>% 
   pivot_longer(cols = c("Extraction_control", 
                         "Filtration_control", 
@@ -628,7 +630,7 @@ sample_control_map_long <- sample_control_map_df %>%
 # Load function to remove contamination, based on control map
 source("./R/remove_contamination.R")
 
-# store sample names in a vector
+# Store sample names in a vector
 sample_names <- sample_control_map_df$Sample_name %>% unique() 
 
 # Remove contamination for all samples and re-merge in a single data frame
@@ -636,7 +638,7 @@ abundance_table_no_cont <- map(.x = sample_names,
                                  .f = ~remove_contamination(data = abundance_table_long, sample = .x)) %>% 
   bind_rows()
 
-# convert to wide format
+# Convert to wide format
 abundance_table_no_cont_wide <- abundance_table_no_cont %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
 
@@ -657,6 +659,7 @@ For this section we need additional packages:
 ``` r
 library(vegan)
 library(scales)
+library(ggplot2)
 ```
 
 We provide some examples of data analyses below.
@@ -664,8 +667,8 @@ We provide some examples of data analyses below.
 ## Rarefaction curves
 
 ``` r
-# step for rarefaction curve
-# remove unnecessary columns
+# Step for rarefaction curve
+# Remove unnecessary columns
 ASV_matrix.1 <- abundance_table_no_cont_wide %>% 
   select(-Sequence, -Scientific.name) 
 
@@ -677,13 +680,13 @@ rownames(ASV_matrix.1) <- asv_col
 #  
 ASV_matrix <- ASV_matrix.1 %>% t()
 
-# replace NA's to 0
+# Replace NA's to 0
 ASV_matrix[is.na(ASV_matrix)] <- 0
 
-# replace sample name to shorter version
+# Replace sample name to shorter version
 rownames(ASV_matrix) <- str_remove(rownames(ASV_matrix), "-16S_S1_L001_R1_001")
 
-# rarefaction curve
+# Rarefaction curve
 rarecurve(ASV_matrix, 
           step = 500, 
           xlab = "Sequencing depth",
@@ -708,7 +711,7 @@ abundance_table_no_cont_wide <- abundance_table_no_cont_wide %>% filter(!is.na(S
 # Define and remove unwanted columns
 cols_to_remove <- c("Sequence", "ASV", unique(sample_control_map_long$Control_ID))
 
-# make a shorter table
+# Make a shorter table
 df_clean <- abundance_table_no_cont_wide  %>% 
   select(-any_of(cols_to_remove))
 
