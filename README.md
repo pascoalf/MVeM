@@ -78,15 +78,15 @@ path according to your own files.
 
 ``` r
 path <- "./path_to_directory" # CHANGE ME to the directory containing the fastq files after unzipping.
-# verify files in path
+# Verify files in path
 list.files(path)
 
 # Forward and reverse fastq file names have format: SAMPLENAME_R1_001.fastq and SAMPLENAME_R2_001.fastq
 # CHANGE according to your file names
 # note: fastq.gz files usually don't need to be decompressed for this step
-fnFs <- sort(list.files(path, pattern="_R1_001.fastq", full.names = TRUE))
+fnFs <- sort(list.files(path, pattern = "_R1_001.fastq", full.names = TRUE))
 fnFs
-fnRs <- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern = "_R2_001.fastq", full.names = TRUE))
 fnRs
 
 # Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
@@ -148,13 +148,13 @@ alt="Aggregate quality plot example for reverse reads" />
 reverse reads</figcaption>
 </figure>
 
-Note: You can save the plot in the results, for example, for later use.
+Note: You can save the plot in the results folder, for example, for later use.
 
 ## Filter and trim reads
 
 Based on quality profiles, decide the trimming parameters. Specifically,
-*truncLen* is used to trim reads by removing nucleotides at the end of
-the reads. In *truncLen*, the first value corresponds to the trimming of
+'truncLen' is used to trim reads by removing nucleotides at the end of
+the reads. In 'truncLen', the first value corresponds to the trimming of
 the forward reads and the second is for the reverse reads. While
 deciding the trimming, take into account the expected read length of
 forward and reverse reads, which need, at least, 12 bp to merge at a
@@ -162,7 +162,7 @@ later step. For more details on DADA2 parameters see:
 <https://benjjneb.github.io/dada2/tutorial.html>
 
 If the primers are present in your samples and you are sure that they
-are right at the beginning of the sequence, then you can use *trimLeft*
+are right at the beginning of the sequence, then you can use 'trimLeft'
 to remove them.
 
 All other parameters are set to default.
@@ -171,9 +171,9 @@ All other parameters are set to default.
 
 ``` r
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
-                     truncLen=c(240,210), ## change according to quality profiles 
-                     maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE, 
-                     compress=TRUE, multithread = TRUE, # On Windows set multithread=FALSE
+                     truncLen = c(240,210), ## change according to quality profiles 
+                     maxN = 0, maxEE = c(2,2), truncQ = 2, rm.phix = TRUE, 
+                     compress = TRUE, multithread = FALSE, # On Windows set multithread=FALSE
                      ## OPTIONAL: if you need to remove primers at this stage, you can use trimLeft
                      #trimLeft = c(nchar("AGACGAGAAGACCCTATG"),                      
                      #            nchar("GGATTGCGCTGTTATCCC"))
@@ -191,16 +191,16 @@ if using Windows OS.
 
 ``` r
 # Learn the Error Rates
-errF <- learnErrors(filtFs, multithread=FALSE)
-errR <- learnErrors(filtRs, multithread=FALSE)
+errF <- learnErrors(filtFs, multithread = FALSE)
+errR <- learnErrors(filtRs, multithread = FALSE)
 ```
 
 After learning the error rates, it is possible to do a sanity check on
 the model:
 
 ``` r
-plotErrors(errF, nominalQ=TRUE)
-plotErrors(errR, nominalQ=TRUE)
+plotErrors(errF, nominalQ = TRUE)
+plotErrors(errR, nominalQ = TRUE)
 ```
 
 ## Dereplication and inference of ASVs
@@ -218,8 +218,8 @@ Based on error rates model, DADA will identify unique sequences:
 
 ``` r
 # Identify unique sequences
-dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
-dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
+dadaFs <- dada(derepFs, err = errF, multithread = FALSE)
+dadaRs <- dada(derepRs, err = errR, multithread = FALSE)
 ```
 
 Next, DADA2 will merge the forward and reverse reads. If after this step
@@ -230,7 +230,7 @@ recommend changing the default overlap.
 
 ``` r
 # Merge paired reads
-mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose = TRUE)
 ```
 
 Construct an abundance table:
@@ -253,7 +253,7 @@ To remove chimeric sequences:
 
 ``` r
 # Remove chimeras
-seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+seqtab.nochim <- removeBimeraDenovo(seqtab, method = "consensus", multithread = FALSE, verbose = TRUE)
 
 # Check percentage of non-chimeric sequences
 sum(seqtab.nochim)/sum(seqtab)
@@ -269,9 +269,13 @@ getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
 # If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
 
-colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+colnames(track) <- c("Raw reads", "Filtered reads", "Denoised Fw reads", "Denoised Rv reads", "Merged reads", "Non-chimeric reads")
 rownames(track) <- sample.namesF ## sample.namesF is just to indicate the sample ID
+rownames(track) <- gsub("-16S_S1_L001_R1_001", "", rownames(track)) # Change according to your sample names
 head(track)
+
+# Save summary table
+write.csv(track, file = './results/Summary_table.csv')
 ```
 
 ## Save ASV table
@@ -283,7 +287,7 @@ At this stage, you can save the ASV table for later use:
 ASV_table <- seqtab.nochim
 
 # Create .csv file
-write.table(seqtab.nochim, file='./results/ASV_table.tsv', quote=FALSE, sep='\t', col.names = NA)
+write.table(ASV_table, file='./results/ASV_table.tsv', quote = FALSE, sep = '\t', col.names = NA)
 ```
 
 ## Export reads to a FASTA file
@@ -305,7 +309,8 @@ ASVs.df <- ASV_table %>%
     as.data.frame() %>% 
     rename(Sequence = ".") %>% 
     distinct() %>% 
-  mutate(ASV = paste0("ASV_", row_number(.)))
+    mutate(ASV = paste0("ASV_", sprintf(paste0("%0", nchar(nrow(.)), "d"), row_number(.)))) %>%
+    arrange(ASV)
 
 # Make FASTA file 
 write.fasta(sequences = as.list(ASVs.df$Sequence), 
