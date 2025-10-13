@@ -153,8 +153,8 @@ Note: You can save the plot in the results folder, for example, for later use.
 ## Filter and trim reads
 
 Based on quality profiles, decide the trimming parameters. Specifically,
-'truncLen' is used to trim reads by removing nucleotides at the end of
-the reads. In 'truncLen', the first value corresponds to the trimming of
+`truncLen` is used to trim reads by removing nucleotides at the end of
+the reads. In `truncLen`, the first value corresponds to the trimming of
 the forward reads and the second is for the reverse reads. While
 deciding the trimming, take into account the expected read length of
 forward and reverse reads, which need, at least, 12 bp to merge at a
@@ -162,7 +162,7 @@ later step. For more details on DADA2 parameters see:
 <https://benjjneb.github.io/dada2/tutorial.html>
 
 If the primers are present in your samples and you are sure that they
-are right at the beginning of the sequence, then you can use 'trimLeft'
+are right at the beginning of the sequence, then you can use `trimLeft`
 to remove them.
 
 All other parameters are set to default.
@@ -309,7 +309,9 @@ ASVs.df <- ASV_table %>%
     as.data.frame() %>% 
     rename(Sequence = ".") %>% 
     distinct() %>% 
-    mutate(ASV = paste0("ASV_", sprintf(paste0("%0", nchar(nrow(.)), "d"), row_number(.)))) %>%
+    {n <- nrow(.)
+    mutate(., ASV = paste0("ASV_", sprintf(paste0("%0", nchar(n), "d"), row_number()))) 
+    } %>%
     arrange(ASV)
 
 # Make FASTA file 
@@ -346,7 +348,7 @@ Blast parameters:
 **Note**: Don’t forget to change the path and file names.
 
 ``` bash
-blastn -db nt -query ./results/ASV.fasta -out blast_results -outfmt "6 delim=, qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
+blastn -db nt -query ./results/ASV.fasta -out blast_results -outfmt "6 qacc qlen sseqid sacc slen evalue bitscore score length pident nident mismatch positive gaps staxid ssciname sblastname scomnames skingdoms" -evalue 1e-05 -perc_identity 99 -qcov_hsp_perc 80 -remote
 ```
 
 This command returns a table named blast_results (you can change the
@@ -358,6 +360,25 @@ which means that the time it takes to run your samples might vary.
 
 **Note:** change the file paths as needed.
 
+## Retrieve full taxonomic information
+
+The BLAST results do not provide the complete taxonomy for each hit. 
+However, there are several options for obtaining the full taxonomic information.
+In this pipeline, we use the **NCBI Taxonomy Toolkit - TaxonKit** (Shen & Ren, 2021).
+
+Please see installation instructions at:
+<https://bioinf.shenwei.me/taxonkit/download/#download>
+
+This tool allows the submission of BLAST output as input, using NCBI taxon IDs to retrieve taxonomy information.
+
+``` bash
+cat blast_results | taxonkit reformat2 -I 15 -r "Unassigned" -f "{domain|acellular root|superkingdom}\t{phylum}\t{class}\t{order}\t{family}\t{genus}\t{species}" | tee blast_results_taxonomy
+```
+**Note:** change the file paths as needed.
+
+Other options that can be used for obtaining the full taxonomy include the R package *taxonomizr* or the R package *worrms*. 
+For the latter, the user should note that this tool uses the scientific name instead of the taxon ID to retrieve tha accepted taxonomy from WoRMS, which may require some data cleaning before application.
+
 ## Assign taxonomy based on best hits
 
 For this section we will need additional packages:
@@ -367,8 +388,6 @@ library(tidyr)
 library(ulrb)
 library(stringr)
 library(purrr)
-library(readxl)
-library(worrms)
 ```
 
 The raw blast results include all the hits. Therefore, we need to apply
@@ -378,15 +397,15 @@ Start by loading the blast results into your R session:
 
 ``` r
 # Load blast results
-all_hits <- read.csv("./results/blast_results", header = FALSE, # change file path as needed
+all_hits <- read.csv("./results/blast_results_taxonomy", header = FALSE, # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
                                    "Subject sequence length",   "evalue", "Bit Score",
                                    "Raw Score", "Alignment length", "Percentage of identical matches",
                                    "Number of identical matches",   "Number of mismatches",
                                    "Number of positive scoring matches", "Total number of gaps",
-                                   "Taxonomy ID", "Scientific name",    "Subject blast name", 
-                                   "Subject common name"))
+                                   "Taxonomy ID", "Scientific name",    "Subject blast name", "Subject common name",
+                                   "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"))
 ```
 
 ## Add ban list (optional)
@@ -433,10 +452,8 @@ target_genes <- target_genes %>%
 Filter relevant hits:
 
 -   Minimum alignment length: 190 nt
--   Remove species in ban list;
--   Remove hits from non-target genes:
--   Keep hits from relevant biological groups (teleosts, cetaceans, and
-    elasmobranchs)
+-   Remove species in ban list
+-   Remove hits from non-target genes
 
 ``` r
 # Filter valid hits
@@ -444,9 +461,10 @@ filtered_hits <- all_hits %>%
   filter(Alignment.length >= 190,
         !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
-         Subject.blast.name %in% c("bony fishes",
-                                   "whales & dolphins",
-                                   "sharks & rays"))
+  # Remove environmental sample rows
+  filter(!grepl("environmental sample", Species, ignore.case = TRUE)) %>%
+  # Normalize to first two words for species-level matching
+  mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Species))
 ```
 
 After filtration, we have multiple hits for each ASV. To obtain the best
@@ -455,36 +473,13 @@ hit, we select the hits with highest bit score and percentage identity:
 ``` r
 # Obtain top hits and remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
-  # Remove environmental sample rows
-  filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>%
-  # Normalize to first two words for species-level matching
-  mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Scientific.name)) %>%
   group_by(Query.accession) %>%
   filter(Bit.Score == max(Bit.Score)) %>%
   filter(Percentage.of.identical.matches == max(Percentage.of.identical.matches)) %>% 
   ungroup()
 ```
 
-## Obtain full taxonomy for all identified species
-
-``` r
-# Get all species
-all_species <- top_hits$Scientific.name %>% unique()
-
-# Make data frame with full taxonomy of species
-# May take a while
-all_species_info <- map(.x = all_species, .f = ~wm_records_names(.x)) %>% 
-  bind_rows() %>% 
-  select(kingdom, phylum, class, order, family, genus, scientificname)
-```
-
-Merge taxonomic information to blast hits:
-
-``` r
-# Merge taxonomic information to blast hits
-top_hits_with_taxa_info <- top_hits %>% 
-  left_join(all_species_info, by = c("Scientific.name" = "scientificname"))
-```
+## Solve ties by LCA approach
 
 It is possible to obtain multiple hits with the same scores, but
 different species. Usually, within the same genus or within the same
@@ -500,7 +495,7 @@ To solve ties we need the following functions:
 # Check ties function
 check_ties <- function(x){
   x %>%
-    pull(Scientific.name) %>% 
+    pull(Species) %>% 
     unique() %>% 
     word() %>%
     unique() 
@@ -513,13 +508,13 @@ assign_LCA <- function(x){
   # make possible LCAs
   # no family ties, assign family as LCA
   fam_LCA <- x %>% 
-    pull(family) %>% 
+    pull(Family) %>% 
     unique()
   genus_LCA <- x %>% 
-    pull(genus) %>% 
+    pull(Genus) %>% 
     unique()
   species_LCA <- x %>% 
-    pull(Scientific.name) %>% 
+    pull(Species) %>% 
     unique()
   
   #
@@ -545,30 +540,55 @@ Get best hits, without ties:
 
 ``` r
 # Best hits, with LCA
-taxonomic_assignments <- top_hits_with_taxa_info %>%
+taxonomic_assignments <- top_hits %>%
   group_by(Query.accession) %>% 
   nest() %>% 
   mutate(LCA = map(.x = data, 
                    .f = ~assign_LCA(.x))) %>% 
-  mutate(taxa = map(.x = data, .f = ~unique(.x$Scientific.name))) %>% 
+  mutate(taxa = map(.x = data, .f = ~unique(.x$Species))) %>% 
   mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>% 
   unnest(c(LCA, data, isTie)) %>% 
   group_by(Query.accession) %>% 
   slice_head(n = 1) %>% 
-  mutate(FinalAssignment = ifelse(isTRUE(isTie), LCA, Scientific.name)) %>% 
+  mutate(FinalAssignment = ifelse(isTRUE(isTie), LCA, Species)) %>% 
   select(Query.accession,
-         Scientific.name, 
-         LCA, FinalAssignment, 
+         FinalAssignment, 
          Bit.Score, evalue, Alignment.length,
          Percentage.of.identical.matches,
          Number.of.identical.matches,
-         Number.of.mismatches)
+         Number.of.mismatches,
+         Domain, Phylum, Class,
+         Order, Family, Genus,
+         Species)
+
+tax_assign_merged <- taxonomic_assignments %>% 
+  select(ASV = Query.accession,
+         FinalAssignment, 
+         Bit.Score, evalue, Alignment.length,
+         Percentage.of.identical.matches,
+         Number.of.identical.matches,
+         Number.of.mismatches,
+         Domain, Phylum, Class,
+         Order, Family, Genus,
+         Species) %>% 
+  filter(!is.na(FinalAssignment)) %>%  # Remove unassigned ASVs
+  left_join(ASVs.df, by = "ASV") # ASVs.df was made in the DADA2 section
 
 # View results in your R session
-View(taxonomic_assignments)
+View(tax_assign_merged)
 
-# Save final assignments into memory
-write.csv(taxonomic_assignments, "results/taxonomic_assignments.csv")
+# Save taxonomic assignments into memory
+write.csv(tax_assign_merged, "results/taxonomic_assignments.csv", row.names = FALSE)
+```
+
+After taxonomic assignment, we can filter our ASVs by target biological groups (actinopterygians, mammals, and elasmobranchs)
+
+``` r
+filt_tax_assignments <- taxonomic_assignments %>%
+  filter(Class %in% c("Mammalia", "Actinopteri", "Chondrichthyes"))
+
+# Save final taxonomic assignments into memory
+write.csv(filt_tax_assignments, "results/taxonomic_assignments_filtered.csv", row.names = FALSE)
 ```
 
 ## Add taxonomic assignments to ASV abundance table
@@ -577,12 +597,6 @@ First, we need to transform the blast results in a data frame compatible
 with the abundance table. Then, we can merge them based on ASV ID.
 
 ``` r
-# Transform blast results to compatible format
-ASV_ncbi <- taxonomic_assignments %>% 
-  select(ASV = Query.accession, Scientific.name) %>% 
-  filter(!is.na(Scientific.name)) %>%  # Remove unassigned ASVs
-  left_join(ASVs.df, by = "ASV") # ASVs.df was made in the DADA2 section
-
 # Create abundance table in long format
 abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
   prepare_tidy_data(sample_names = row.names(ASV_table), samples_in = "rows") %>% 
@@ -592,13 +606,21 @@ abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
 
 # Creates abundance table in wide format
 abundance_table_wide <- abundance_table_long %>% 
+  mutate(FinalAssignment = replace_na(FinalAssignment, "Unassigned")) %>%
   pivot_wider(names_from = Sample, values_from = Abundance)
 
+table_1 <- abundance_table_wide %>%
+  select(ASV, FinalAssignment,
+         18:last_col(),
+         Domain, Phylum, Class, Order, Family, Genus, Species) %>%
+  arrange(ASV)
+colnames(table_1) <- gsub("-16S_S1_L001_R1_001", "", colnames(table_1))
+
 # Save wide format abundance table
-write.csv(abundance_table_wide, "results/abundance_table_wide.csv")
+write.csv(table_1, "results/Table_1.csv", row.names = FALSE)
 ```
 
-## Extras
+## Filter ASVs by abundance and presence in negative controls
 
 After the abundance table is ready, we can add additional steps, like
 the removal of ASVs below 0.01% relative abundance.
@@ -617,7 +639,7 @@ abundance_table_long_filtered <- abundance_table_long %>%
 **Identify ASVs from control samples and filter them out**
 
 Before this step, fill the **sample_control_map_template.xlsx** file in
-**refs** folder, you can follow the example file,
+**refs** folder, indicating the associated negative controls for each sample. You can follow the example file,
 **sample_control_map_example.xlsx**.
 
 ``` r
@@ -647,15 +669,18 @@ abundance_table_no_cont <- map(.x = sample_names,
 abundance_table_no_cont_wide <- abundance_table_no_cont %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
 
-# Save long-format abundance table
-write.csv(abundance_table_no_cont, file = "results/abundance_table_long_eDNA.csv", row.names = FALSE)
+table_2 <- abundance_table_no_cont_wide %>%
+  select(ASV, FinalAssignment,
+         18:last_col(),
+         Domain, Phylum, Class, Order, Family, Genus, Species) %>%
+  mutate(FinalAssignment = replace_na(FinalAssignment, "Unassigned")) %>%
+  mutate(across(where(is.numeric), ~replace_na(.x, 0))) %>%
+  arrange(ASV)
+colnames(table_2) <- gsub("-16S_S1_L001_R1_001", "", colnames(table_2))
 
-# Save wide-format table
-write.csv(abundance_table_no_cont_wide, file = "results/abundance_table_wide_eDNA_filtered.csv", row.names = FALSE)
+# Save the output table
+write.csv(table_2, file = "results/Table_2.csv", row.names = FALSE)
 ```
-
-*Note*: ASVs removed during contamination removal process are marked as
-NAs in the wide format table.
 
 # Verify results
 
@@ -900,3 +925,5 @@ ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
     Bioinformatics. 2016 Oct 1;32(19):3047-8. doi:
     10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411;
     PMCID: PMC5039924.
+
+-   Shen, W., & Ren, H. (2021). TaxonKit: A practical and efficient NCBI taxonomy toolkit. Journal of genetics and genomics, 48(9), 844-850.
