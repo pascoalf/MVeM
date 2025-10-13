@@ -584,7 +584,7 @@ write.csv(tax_assign_merged, "results/taxonomic_assignments.csv", row.names = FA
 After taxonomic assignment, we can filter our ASVs by target biological groups (actinopterygians, mammals, and elasmobranchs)
 
 ``` r
-filt_tax_assignments <- taxonomic_assignments %>%
+filt_tax_assignments <- tax_assign_merged %>%
   filter(Class %in% c("Mammalia", "Actinopteri", "Chondrichthyes"))
 
 # Save final taxonomic assignments into memory
@@ -602,7 +602,7 @@ abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
   prepare_tidy_data(sample_names = row.names(ASV_table), samples_in = "rows") %>% 
   rename(Sequence = Taxa_id) %>% 
   left_join(ASVs.df, by = "Sequence") %>% 
-  left_join(ASV_ncbi, by = "ASV")
+  left_join(filt_tax_assignments, by = "ASV")
 
 # Creates abundance table in wide format
 abundance_table_wide <- abundance_table_long %>% 
