@@ -662,7 +662,7 @@ sample_names <- sample_control_map_df$Sample_name %>% unique()
 
 # Remove contamination for all samples and re-merge in a single data frame
 abundance_table_no_cont <- map(.x = sample_names, 
-                                 .f = ~remove_contamination(data = abundance_table_long, sample = .x)) %>% 
+                                 .f = ~remove_contamination(data = abundance_table_long_filtered, sample = .x)) %>% 
   bind_rows()
 
 # Convert to wide format
