@@ -397,7 +397,7 @@ Start by loading the blast results into your R session:
 
 ``` r
 # Load blast results
-all_hits <- read.csv("./results/blast_results_taxonomy", header = FALSE, # change file path as needed
+all_hits <- read.csv("./results/blast_results_taxonomy", header = FALSE, sep = "\t", # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
                                    "Subject sequence length",   "evalue", "Bit Score",
@@ -459,10 +459,10 @@ Filter relevant hits:
 # Filter valid hits
 filtered_hits <- all_hits %>%
   filter(Alignment.length >= 190,
-        !Scientific.name %in% ban_list,
+         !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
-  # Remove environmental sample rows
-  filter(!grepl("environmental sample", Species, ignore.case = TRUE)) %>%
+         # Remove environmental sample rows
+         !grepl("environmental sample", Species, ignore.case = TRUE)) %>%
   # Normalize to first two words for species-level matching
   mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Species))
 ```
