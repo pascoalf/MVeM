@@ -57,3 +57,6 @@ input/
 
 #
 validate_file.R
+
+# Ignore html files
+README.html
