@@ -1,6 +1,6 @@
 # remove contamination
 # function to remove ASVs identified in the control respective to a sample
-remove_contamination <- function(data, sample, map_sample = sample_control_map_long, ...){
+remove_contamination <- function(data, sample, map_sample = sample_control_map_long, treshold = treshold, ...){
   # make helper function to extract specific controls
   extract_controls <- function(x = sample_control_map_long,
                                asvs_original = data, 
@@ -31,9 +31,26 @@ remove_contamination <- function(data, sample, map_sample = sample_control_map_l
   # ASVs in all controls
   asvs_in_control <- c(extraction_control, filtration_control, PCR_control) %>% 
     unique()
-  
+
+  # Safe ASVs -- too abundant in original sample to be removed  
+  safe_ASVs <- data %>% 
+    filter(Sample == sample) %>%
+    filter(Abundance >= treshold) %>% 
+    pull(ASV) %>% 
+    unique()
+  safe_ASVs.df <- data.frame(ASV = safe_ASVs)
+
+  # Remove safe ASVs from contaminant list
+  asvs_in_control.df <- data.frame(ASV = asvs_in_control) %>% 
+   anti_join(safe_ASVs.df, by = "ASV")
+
   #
   data %>%
     filter(Sample == sample) %>% 
-    filter(!ASV %in% asvs_in_control)
+    filter(!ASV %in% asvs_in_control.df$ASV)
 }
+
+
+
+
+
