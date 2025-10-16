@@ -643,7 +643,8 @@ the removal of ASVs below 0.01% relative abundance.
 abundance_table_long_filtered <- abundance_table_long %>% 
   group_by(Sample) %>% 
   mutate(relativeAbundance = Abundance*100/sum(Abundance)) %>% 
-  mutate(Abundance = ifelse(relativeAbundance > 0.01, Abundance, 0),
+  mutate(Abundance = ifelse(Abundance == 1, 0, Abundance),
+         Abundance = ifelse(relativeAbundance > 0.01, Abundance, 0),
          Abundance = ifelse(is.na(Abundance), 0, Abundance)) %>% 
   select(-Sequence.y, -relativeAbundance) %>% 
   rename(Sequence = Sequence.x)
