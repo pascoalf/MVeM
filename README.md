@@ -714,7 +714,7 @@ We provide some examples of data analyses below.
 # Step for rarefaction curve
 # Remove unnecessary columns
 ASV_matrix.1 <- abundance_table_no_cont_wide %>% 
-  select(-Sequence, -Scientific.name) 
+  select(-Sequence, -FinalAssignment, -Bit.Score, -evalue, -Alignment.length, -Percentage.of.identical.matches, -Number.of.identical.matches, -Number.of.mismatches, -Domain, -Phylum, -Class, -Order, -Family, -Genus, -Species) 
 
 #
 asv_col <- ASV_matrix.1$ASV
@@ -746,17 +746,15 @@ alt="Rarefaction curve example" />
 ## Example of quick diversity analysis
 
 ``` r
-# (Optional) Load abundance table in wide format
-#abundance_table_no_cont_wide <- read.csv("abundance_table_no_cont_wide.csv")
-
-# Remove NAs in Scientific.name
-abundance_table_no_cont_wide <- abundance_table_no_cont_wide %>% filter(!is.na(Scientific.name))
+#Load Table 2
+#diversity_plot_matrix <- read.csv("/Table_2.csv")
+diversity_plot_matrix <- table_2 
 
 # Define and remove unwanted columns
-cols_to_remove <- c("Sequence", "ASV", unique(sample_control_map_long$Control_ID))
+cols_to_remove <- c("FinalAssignment", "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 
 # Make a shorter table
-df_clean <- abundance_table_no_cont_wide  %>% 
+df_clean <- diversity_plot_matrix  %>% 
   select(-any_of(cols_to_remove))
 
 # Create ASV matrix
@@ -764,26 +762,26 @@ df_clean <- abundance_table_no_cont_wide  %>%
 rownames(df_clean) <- make.unique(as.character(df_clean[[1]]))
 
 # Extract abundance matrix (drop first column which was used as rownames)
-asv_matrix <- df_clean[, -1]
+asv_matrix_alpha <- df_clean[, -1]
 
 # Clean sample names by removing suffix
-colnames(asv_matrix) <- gsub("-16S_S1_L001_R1_001", "", colnames(asv_matrix))
+colnames(asv_matrix_alpha) <- gsub("-16S_S1_L001_R1_001", "", colnames(asv_matrix))
 
 # Transpose: samples as rows, ASVs as columns
-asv_matrix_t <- t(asv_matrix)
+asv_matrix_alpha_t <- t(asv_matrix)
 
 # Remove empty samples (rows with sum 0)
-asv_matrix_t <- asv_matrix_t[rowSums(asv_matrix_t) > 0, ]
+asv_matrix_alpha_t <- asv_matrix_alpha_t[rowSums(asv_matrix_alpha_t) > 0, ]
 
 # Clean sample names again from filtered matrix rownames (just to be sure)
-rownames(asv_matrix_t) <- gsub("-16S_S1_L001_R1_001", "", rownames(asv_matrix_t))
+rownames(asv_matrix_alpha_t) <- gsub("-16S_S1_L001_R1_001", "", rownames(asv_matrix_t))
 
 # Alpha Diversity per Sample (Observed + Shannon)
 # Calculate diversity metrics per sample
 alpha_df <- data.frame(
-  Sample = rownames(asv_matrix_t),
-  Observed = rowSums(asv_matrix_t > 0),
-  Shannon = diversity(asv_matrix_t, index = "shannon")
+  Sample = rownames(asv_matrix_alpha_t),
+  Observed = rowSums(asv_matrix_alpha_t > 0),
+  Shannon = diversity(asv_matrix_alpha_t, index = "shannon")
 )
 
 # tidy alpha_df
@@ -834,76 +832,70 @@ ggplot(nmds_df, aes(x = NMDS1, y = NMDS2, label = Sample)) +
        x = "NMDS1", y = "NMDS2") +
   theme_minimal()
 
-# Calculate Jaccard dissimilarity (presence/absence)
-jaccard_dist <- vegdist(asv_matrix_t, method = "jaccard", binary = TRUE)
-
-# NMDS on Jaccard
-set.seed(42); nmds_jaccard <- metaMDS(jaccard_dist, k = 2, trymax = 100)
-
-# Prepare dataframe
-nmds_jaccard_df <- as.data.frame(nmds_jaccard$points)
-colnames(nmds_jaccard_df) <- c("NMDS1", "NMDS2")
-nmds_jaccard_df$Sample <- rownames(nmds_jaccard_df)
-
-# Plot Jaccard NMDS
-ggplot(nmds_jaccard_df, aes(x = NMDS1, y = NMDS2, label = Sample)) +
-  geom_point(size = 3, color = "steelblue") +
-  geom_text(vjust = -0.5, size = 3) +
-  labs(title = paste("Beta Diversity (Jaccard NMDS), Stress =", round(nmds_jaccard$stress, 3)),
-       x = "NMDS1", y = "NMDS2") +
-  theme_minimal()
 
 # Relative Abundance Plot
-#Pivot data to long format
-asv_long <- df_clean %>%
-  pivot_longer(cols = -Scientific.name, names_to = "Sample", values_to = "Abundance")
+# Start fresh from Table_2
+# Remove ASV column only
+df_relativeabundance <- Table_2 %>% select(-ASV)
 
-#Clean sample names
-asv_long$Sample <- gsub("-16S_S1_L001_R1_001", "", asv_long$Sample)
+# Define taxonomic levels to plot
+tax_levels <- c("Domain", "Phylum", "Class", "Order", "Genus", "Species", "FinalAssignment")
 
-#Remove zero abundances
-asv_long <- asv_long %>% filter(Abundance > 0)
-
-#Calculate relative abundance per sample
-asv_rel_abund <- asv_long %>%
-  group_by(Sample) %>%
-  mutate(RelAbund = Abundance / sum(Abundance)) %>%
-  ungroup()
-
-#Use all species directly as taxon labels
-asv_rel_abund <- asv_rel_abund %>%
-  mutate(Taxon = Scientific.name)
-
-#Aggregate relative abundances by Sample and Taxon
-plot_data <- asv_rel_abund %>%
-  group_by(Sample, Taxon) %>%
-  summarise(RelAbund = sum(RelAbund), .groups = "drop")
-
-#Define custom color palette (20 colors, unnamed)
+# Define custom color palette (30 colors)
 custom_colors <- c(
-  "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-  "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-  "#a6cee3", "#1b9e77", "#d95f02", "#7570b3", "#e7298a",
-  "#66a61e", "#e6ab02", "#a6761d", "#666666", "#f781bf"
+  "#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e",
+  "#e6ab02", "#a6761d", "#666666", "#1f78b4", "#b2df8a",
+  "#33a02c", "#fb9a99", "#fdbf6f", "#ff7f00", "#cab2d6",
+  "#6a3d9a", "#ffff99", "#b15928", "#8dd3c7", "#ffffb3",
+  "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69",
+  "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5", "#ffed6f"
 )
 
-#Plot stacked bar chart
-ggplot(plot_data, aes(x = Sample, y = RelAbund, fill = Taxon)) +
-  geom_bar(stat = "identity") +
-  labs(
-    title = "Relative Abundance by Taxon",
-    x = "Sample",
-    y = "Relative Abundance"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 8)
-  ) +
-  scale_y_continuous(labels = percent_format()) +
-  scale_fill_manual(values = custom_colors) +
-  guides(fill = guide_legend(title = "Taxon"))
+# Loop through each taxonomic level to create relative abundance plots
+for (tax in tax_levels) {
+  
+  # Aggregate counts at the taxonomic level
+  df_tax <- df_relativeabundance %>%
+    group_by(across(all_of(tax))) %>%
+    summarise(across(where(is.numeric), sum), .groups = "drop")
+  
+  # Pivot to long format
+  df_long <- df_tax %>%
+    pivot_longer(cols = -all_of(tax), names_to = "Sample", values_to = "Abundance")
+  
+  # Clean sample names
+  df_long$Sample <- gsub("-16S_S1_L001_R1_001", "", df_long$Sample)
+  
+  # Remove zero abundances
+  df_long <- df_long %>% filter(Abundance > 0)
+  
+  # Calculate relative abundance per sample
+  df_rel <- df_long %>%
+    group_by(Sample) %>%
+    mutate(RelAbund = Abundance / sum(Abundance)) %>%
+    ungroup() %>%
+    rename(Taxon = all_of(tax))
+  
+  # Plot stacked bar chart with the same custom colors
+  p <- ggplot(df_rel, aes(x = Sample, y = RelAbund, fill = Taxon)) +
+    geom_bar(stat = "identity") +
+    labs(
+      title = paste("Relative Abundance by", tax),
+      x = "Sample",
+      y = "Relative Abundance"
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 8)
+    ) +
+    scale_y_continuous(labels = percent_format()) +
+    scale_fill_manual(values = custom_colors) +
+    guides(fill = guide_legend(title = tax))
+  
+  print(p)
+}
 ```
 
 # References
