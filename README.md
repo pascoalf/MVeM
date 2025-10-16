@@ -897,6 +897,12 @@ for (tax in tax_levels) {
   print(p)
 }
 ```
+<figure>
+<img src="results/Relativeabundanceplot_example.png"
+alt="Final Assignment reads relative abundance - example" />
+<figcaption aria-hidden="true">Relative Abundance - plot
+example</figcaption>
+</figure>
 
 # References
 
