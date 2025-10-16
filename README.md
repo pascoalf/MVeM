@@ -397,7 +397,7 @@ Start by loading the blast results into your R session:
 
 ``` r
 # Load blast results
-all_hits <- read.csv("./results/blast_results_taxonomy", header = FALSE, # change file path as needed
+all_hits <- read.table("./results/blast_results_taxonomy", header = FALSE, sep = "\t", # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
                                    "Subject sequence length",   "evalue", "Bit Score",
