@@ -58,7 +58,7 @@ input/
 #
 validate_file.R
 R/helper_files/
-
+results/ASV_table.tsv
 
 
 # Ignore html files
