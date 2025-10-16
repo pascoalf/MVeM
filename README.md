@@ -457,10 +457,10 @@ filtered_hits <- all_hits %>%
   filter(Alignment.length >= 190,
         !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
-  # Remove environmental sample rows
-  filter(!grepl("environmental sample", Species, ignore.case = TRUE)) %>%
-  # Normalize to first two words for species-level matching
-  mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Species))
+         # Remove environmental sample rows
+         !grepl("environmental sample", Species, ignore.case = TRUE)) %>%
+         # Normalize to first two words for species-level matching
+         mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Species))
 ```
 
 After filtration, we have multiple hits for each ASV. To obtain the best
