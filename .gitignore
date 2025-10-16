@@ -63,7 +63,7 @@ results/Table_1.csv
 results/taxonomic_assignments.csv
 results/taxonomic_assignments_filtered.csv
 results/Table_2.csv
-
+results/abundance_table_long_filtered.csv
 # Ignore html files
 README.html
 results/blast_results_taxonomy
