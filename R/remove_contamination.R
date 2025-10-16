@@ -1,6 +1,6 @@
 # remove contamination
 # function to remove ASVs identified in the control respective to a sample
-remove_contamination <- function(data, sample, map_sample = sample_control_map_long, treshold = treshold, ...){
+remove_contamination <- function(data, sample, map_sample = sample_control_map_long, treshold = NULL, option = "treshold", ...){
   # make helper function to extract specific controls
   extract_controls <- function(x = sample_control_map_long,
                                asvs_original = data, 
@@ -23,8 +23,7 @@ remove_contamination <- function(data, sample, map_sample = sample_control_map_l
   }  
   
   # Obtain control sample IDs
-  
-  extraction_control <- extract_controls(sample = sample, type = "Extraction_control")
+    extraction_control <- extract_controls(sample = sample, type = "Extraction_control")
   filtration_control <- extract_controls(sample = sample, type = "Filtration_control")
   PCR_control <- extract_controls(sample = sample, type = "PCR_control")
   
@@ -33,12 +32,24 @@ remove_contamination <- function(data, sample, map_sample = sample_control_map_l
     unique()
 
   # Safe ASVs -- too abundant in original sample to be removed  
-  safe_ASVs <- data %>% 
-    filter(Sample == sample) %>%
-    filter(Abundance >= treshold) %>% 
-    pull(ASV) %>% 
-    unique()
-  safe_ASVs.df <- data.frame(ASV = safe_ASVs)
+  # Treshold option
+  if(option == "treshold"){
+    safe_ASVs <- data %>% 
+      filter(Sample == sample) %>%
+      filter(Abundance >= treshold) %>% 
+      pull(ASV) %>% 
+      unique()
+    safe_ASVs.df <- data.frame(ASV = safe_ASVs)    
+  } else if(option == "automatic"){
+    # unsupervised clustering
+    ucluster <- suppressWarnings(define_rb(data))
+    safe_ASVs <- ucluster %>% 
+      filter(Sample == sample) %>%
+      filter(Classification != "Rare") %>% 
+      pull(ASV) %>% 
+      unique()
+    safe_ASVs.df <- data.frame(ASV = safe_ASVs)
+  }
 
   # Remove safe ASVs from contaminant list
   asvs_in_control.df <- data.frame(ASV = asvs_in_control) %>% 
@@ -49,8 +60,3 @@ remove_contamination <- function(data, sample, map_sample = sample_control_map_l
     filter(Sample == sample) %>% 
     filter(!ASV %in% asvs_in_control.df$ASV)
 }
-
-
-
-
-
