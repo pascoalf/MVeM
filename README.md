@@ -290,6 +290,40 @@ ASV_table <- seqtab.nochim
 write.table(ASV_table, file='./results/ASV_table.tsv', quote = FALSE, sep = '\t', col.names = NA)
 ```
 
+## Rarefaction curves
+
+After saving the ASV table, you can assess sequencing depth across samples by generating rarefaction curves.
+
+``` r
+# Load ASV table (from DADA2 output)
+# The ASV.table is a TSV file where samples are rows and ASV sequences are columns
+ASV_rarefaction <- read.delim("ASV_table1_eDNA.tsv", header = TRUE, row.names = 1, sep = "\t", check.names = FALSE)
+
+# Replace NA's with 0
+ASV_rarefaction[is.na(ASV_rarefaction)] <- 0
+
+# Ensure all entries are numeric (in case they were read as characters)
+ASV_rarefaction <- apply(ASV_rarefaction, 2, as.numeric)
+rownames(ASV_rarefaction) <- rownames(read.delim("ASV_table1_eDNA.tsv", header = TRUE, sep = "\t", check.names = FALSE, row.names = 1))
+
+# Replace sample names to shorter version
+rownames(ASV_rarefaction) <- str_remove(rownames(ASV_rarefaction), "-16S_S1_L001_R1_001")
+
+# Rarefaction curve
+rarecurve(
+  ASV_rarefaction,
+  step = 500,
+  xlab = "Sequencing depth",
+  ylab = "Number of ASVs"
+)
+```
+
+<figure>
+<img src="results/RarefactionCurves_example.png"
+alt="Rarefaction curve example" />
+<figcaption aria-hidden="true">Rarefaction curve example</figcaption>
+</figure>
+
 ## Export reads to a FASTA file
 
 Generally, it is useful to have the final unique sequences in a FASTA
@@ -706,42 +740,8 @@ library(scales)
 library(ggplot2)
 ```
 
-We provide some examples of data analyses below.
+We provide some examples of data analyses below, namely visualization of alpha and beta diversity across your data, and originating reads' relative abundance plots for all taxonomic levels.
 
-## Rarefaction curves
-
-``` r
-# Step for rarefaction curve
-# Remove unnecessary columns
-ASV_matrix.1 <- abundance_table_no_cont_wide %>% 
-  select(-Sequence, -FinalAssignment, -Bit.Score, -evalue, -Alignment.length, -Percentage.of.identical.matches, -Number.of.identical.matches, -Number.of.mismatches, -Domain, -Phylum, -Class, -Order, -Family, -Genus, -Species) 
-
-#
-asv_col <- ASV_matrix.1$ASV
-ASV_matrix.1$ASV <- NULL
-rownames(ASV_matrix.1) <- asv_col
-
-#  
-ASV_matrix <- ASV_matrix.1 %>% t()
-
-# Replace NA's to 0
-ASV_matrix[is.na(ASV_matrix)] <- 0
-
-# Replace sample name to shorter version
-rownames(ASV_matrix) <- str_remove(rownames(ASV_matrix), "-16S_S1_L001_R1_001")
-
-# Rarefaction curve
-rarecurve(ASV_matrix, 
-          step = 500, 
-          xlab = "Sequencing depth",
-          ylab = "Number of ASVs")
-```
-
-<figure>
-<img src="results/rarefaction_curve_example.png"
-alt="Rarefaction curve example" />
-<figcaption aria-hidden="true">Rarefaction curve example</figcaption>
-</figure>
 
 ## Example of quick diversity analysis
 
@@ -854,8 +854,11 @@ custom_colors <- c(
 # Loop through each taxonomic level to create relative abundance plots
 for (tax in tax_levels) {
   
-  # Aggregate counts at the taxonomic level
+  # Remove rows with NA in the current taxonomic level
   df_tax <- df_relativeabundance %>%
+    filter(!is.na(.data[[tax]])) %>%  # <-- added line
+  
+  # Aggregate counts at the taxonomic level
     group_by(across(all_of(tax))) %>%
     summarise(across(where(is.numeric), sum), .groups = "drop")
   
