@@ -687,7 +687,7 @@ table_2 <- abundance_table_no_cont_wide %>%
   select(ASV, FinalAssignment,
          18:last_col(),
          Domain, Phylum, Class, Order, Family, Genus, Species) %>%
-  mutate(FinalAssignment = replace_na(FinalAssignment, "Unassigned")) %>%
+  filter(!is.na(FinalAssignment)) %>% 
   mutate(across(where(is.numeric), ~replace_na(.x, 0))) %>%
   arrange(ASV)
 colnames(table_2) <- gsub("-16S_S1_L001_R1_001", "", colnames(table_2))
