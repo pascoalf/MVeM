@@ -484,8 +484,7 @@ family. We call these situations *ties*.
 To solve ties we need the following functions:
 
 -   check_ties; *identifies ties that need to be solved*
--   assign_LCA. *breaks the tie by identifying the lowest common
-    ancestor - LCA*
+-   assign_LCA. *breaks the tie by identifying the lowest common ancestor - LCA*
 
 ``` r
 # Check ties function
@@ -502,28 +501,41 @@ check_ties <- function(x){
 # assign_LCA function
 assign_LCA <- function(x){
   # make possible LCAs
-  # no family ties, assign family as LCA
-  fam_LCA <- x %>% 
-    pull(Family) %>% 
-    unique()
-  genus_LCA <- x %>% 
-    pull(Genus) %>% 
-    unique()
-  species_LCA <- x %>% 
-    pull(Species) %>% 
-    unique()
+  dom_LCA <- x %>% pull(Domain) %>% unique()
+  phyl_LCA <- x %>%  pull(Phylum) %>% unique()
+  class_LCA <- x %>% pull(Class) %>% unique()
+  ord_LCA <- x %>%  pull(Order) %>% unique()
+  fam_LCA <- x %>% pull(Family) %>% unique()
+  genus_LCA <- x %>%  pull(Genus) %>% unique()
+  species_LCA <- x %>%pull(Species) %>% unique()
   
   #
-  if(length(fam_LCA) > 1){
+  if(length(dom_LCA) > 1){
     LCA <- "Uncertain"
+    Level <- "Domain"
+  } else if(length(phyl_LCA) > 1){
+    LCA <- dom_LCA
+    Level <- "Phylum"
+  } else if(length(class_LCA) > 1){
+    LCA <- phyl_LCA
+    Level <- "Class"
+  } else if(length(ord_LCA) > 1){
+    LCA <- class_LCA
+    Level <- "Order"
+  } else if(length(fam_LCA) > 1){
+    LCA <- ord_LCA
+    Level <- "Family"
   } else if(length(genus_LCA) > 1){
     LCA <- fam_LCA
+    Level <- "Genus"
   } else if(length(species_LCA) > 1){
-    LCA <- genus_LCA
+    LCA <- paste(genus_LCA, "sp.")
+    Level <- "Species"
   } else {
     LCA <- species_LCA
+    Level <- NA
   }
-  return(LCA)
+  return(c(LCA, Level))
 }
 ```
 
@@ -540,13 +552,18 @@ taxonomic_assignments <- top_hits %>%
   group_by(Query.accession) %>% 
   nest() %>% 
   mutate(LCA = map(.x = data, 
-                   .f = ~assign_LCA(.x))) %>% 
+                   .f = ~assign_LCA(.x)[1])) %>% 
   mutate(taxa = map(.x = data, .f = ~unique(.x$Species))) %>% 
-  mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>% 
-  unnest(c(LCA, data, isTie)) %>% 
+  mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>%
+  mutate(Level = map(.x = data, 
+                     .f = ~assign_LCA(.x)[2])) %>% 
+  unnest(c(LCA, Level, data, isTie)) %>% 
   group_by(Query.accession) %>% 
   slice_head(n = 1) %>% 
   mutate(FinalAssignment = ifelse(isTRUE(isTie), LCA, Species)) %>% 
+  mutate(Species = ifelse(!is.na(Level), NA, Species)) %>% 
+  mutate(Genus = case_when(Level == "Genus" ~ NA, TRUE ~ Genus)) %>% 
+  mutate(Family = case_when(Level == "Family" ~ NA, TRUE ~ Family)) %>% 
   select(Query.accession,
          FinalAssignment, 
          Bit.Score, evalue, Alignment.length,
