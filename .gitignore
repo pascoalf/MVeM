@@ -57,6 +57,9 @@ input/
 
 #
 validate_file.R
+R/helper_files/
+
+
 
 # Ignore html files
 README.html
