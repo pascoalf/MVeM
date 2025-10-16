@@ -397,7 +397,7 @@ Start by loading the blast results into your R session:
 
 ``` r
 # Load blast results
-all_hits <- read.csv("./results/blast_results_taxonomy", header = FALSE, sep = "\t", # change file path as needed
+all_hits <- read.table("./results/blast_results_taxonomy", header = FALSE, sep = "\t", # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
                                    "Subject sequence length",   "evalue", "Bit Score",
@@ -437,16 +437,12 @@ ban_list <- read.table("./refs/ban_list.txt", header = FALSE) %>%
 ## Prevent match with non-16S genes
 
 Additionally, we also need to ensure that we are not obtaining matches
-from non-16S genes. To do so, we filter all accessions based on a
+from non-mitochondrial genes. To do so, we filter all accessions based on a
 reference file with all possible target gene accessions.
 
 ``` r
 # Target genes
-target_genes <- read.table("refs/gene_16_list.txt", header = FALSE) ## last accessed 23 May 2025
-# Some data cleaning
-target_genes <- target_genes %>% 
-  rename(Subject.accession = V1) %>% 
-  mutate(Subject.accession = str_remove(Subject.accession, "\\.\\d+"))
+target_genes <- read.table("refs/accession_mitochondrial_list.txt", header = TRUE) ## last accessed 16 Oct 2025
 ```
 
 Filter relevant hits:
@@ -463,8 +459,8 @@ filtered_hits <- all_hits %>%
          Subject.accession %in% target_genes$Subject.accession,
          # Remove environmental sample rows
          !grepl("environmental sample", Species, ignore.case = TRUE)) %>%
-  # Normalize to first two words for species-level matching
-  mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Species))
+         # Normalize to first two words for species-level matching
+         mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Species))
 ```
 
 After filtration, we have multiple hits for each ASV. To obtain the best
@@ -488,8 +484,7 @@ family. We call these situations *ties*.
 To solve ties we need the following functions:
 
 -   check_ties; *identifies ties that need to be solved*
--   assign_LCA. *breaks the tie by identifying the lowest common
-    ancestor - LCA*
+-   assign_LCA. *breaks the tie by identifying the lowest common ancestor - LCA*
 
 ``` r
 # Check ties function
@@ -506,28 +501,41 @@ check_ties <- function(x){
 # assign_LCA function
 assign_LCA <- function(x){
   # make possible LCAs
-  # no family ties, assign family as LCA
-  fam_LCA <- x %>% 
-    pull(Family) %>% 
-    unique()
-  genus_LCA <- x %>% 
-    pull(Genus) %>% 
-    unique()
-  species_LCA <- x %>% 
-    pull(Species) %>% 
-    unique()
+  dom_LCA <- x %>% pull(Domain) %>% unique()
+  phyl_LCA <- x %>%  pull(Phylum) %>% unique()
+  class_LCA <- x %>% pull(Class) %>% unique()
+  ord_LCA <- x %>%  pull(Order) %>% unique()
+  fam_LCA <- x %>% pull(Family) %>% unique()
+  genus_LCA <- x %>%  pull(Genus) %>% unique()
+  species_LCA <- x %>%pull(Species) %>% unique()
   
   #
-  if(length(fam_LCA) > 1){
+  if(length(dom_LCA) > 1){
     LCA <- "Uncertain"
+    Level <- "Domain"
+  } else if(length(phyl_LCA) > 1){
+    LCA <- dom_LCA
+    Level <- "Phylum"
+  } else if(length(class_LCA) > 1){
+    LCA <- phyl_LCA
+    Level <- "Class"
+  } else if(length(ord_LCA) > 1){
+    LCA <- class_LCA
+    Level <- "Order"
+  } else if(length(fam_LCA) > 1){
+    LCA <- ord_LCA
+    Level <- "Family"
   } else if(length(genus_LCA) > 1){
     LCA <- fam_LCA
+    Level <- "Genus"
   } else if(length(species_LCA) > 1){
-    LCA <- genus_LCA
+    LCA <- paste(genus_LCA, "sp.")
+    Level <- "Species"
   } else {
     LCA <- species_LCA
+    Level <- NA
   }
-  return(LCA)
+  return(c(LCA, Level))
 }
 ```
 
@@ -544,13 +552,18 @@ taxonomic_assignments <- top_hits %>%
   group_by(Query.accession) %>% 
   nest() %>% 
   mutate(LCA = map(.x = data, 
-                   .f = ~assign_LCA(.x))) %>% 
+                   .f = ~assign_LCA(.x)[1])) %>% 
   mutate(taxa = map(.x = data, .f = ~unique(.x$Species))) %>% 
-  mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>% 
-  unnest(c(LCA, data, isTie)) %>% 
+  mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>%
+  mutate(Level = map(.x = data, 
+                     .f = ~assign_LCA(.x)[2])) %>% 
+  unnest(c(LCA, Level, data, isTie)) %>% 
   group_by(Query.accession) %>% 
   slice_head(n = 1) %>% 
   mutate(FinalAssignment = ifelse(isTRUE(isTie), LCA, Species)) %>% 
+  mutate(Species = ifelse(!is.na(Level), NA, Species)) %>% 
+  mutate(Genus = case_when(Level == "Genus" ~ NA, TRUE ~ Genus)) %>% 
+  mutate(Family = case_when(Level == "Family" ~ NA, TRUE ~ Family)) %>% 
   select(Query.accession,
          FinalAssignment, 
          Bit.Score, evalue, Alignment.length,
@@ -606,7 +619,7 @@ abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
 
 # Creates abundance table in wide format
 abundance_table_wide <- abundance_table_long %>% 
-  mutate(FinalAssignment = replace_na(FinalAssignment, "Unassigned")) %>%
+  filter(!is.na(FinalAssignment)) %>%
   pivot_wider(names_from = Sample, values_from = Abundance)
 
 table_1 <- abundance_table_wide %>%
@@ -630,7 +643,8 @@ the removal of ASVs below 0.01% relative abundance.
 abundance_table_long_filtered <- abundance_table_long %>% 
   group_by(Sample) %>% 
   mutate(relativeAbundance = Abundance*100/sum(Abundance)) %>% 
-  mutate(Abundance = ifelse(relativeAbundance > 0.01, Abundance, 0),
+  mutate(Abundance = ifelse(Abundance == 1, 0, Abundance),
+         Abundance = ifelse(relativeAbundance > 0.01, Abundance, 0),
          Abundance = ifelse(is.na(Abundance), 0, Abundance)) %>% 
   select(-Sequence.y, -relativeAbundance) %>% 
   rename(Sequence = Sequence.x)
@@ -673,7 +687,7 @@ table_2 <- abundance_table_no_cont_wide %>%
   select(ASV, FinalAssignment,
          18:last_col(),
          Domain, Phylum, Class, Order, Family, Genus, Species) %>%
-  mutate(FinalAssignment = replace_na(FinalAssignment, "Unassigned")) %>%
+  filter(!is.na(FinalAssignment)) %>% 
   mutate(across(where(is.numeric), ~replace_na(.x, 0))) %>%
   arrange(ASV)
 colnames(table_2) <- gsub("-16S_S1_L001_R1_001", "", colnames(table_2))

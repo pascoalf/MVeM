@@ -57,3 +57,16 @@ input/
 
 #
 validate_file.R
+R/helper_files/
+results/ASV_table.tsv
+results/Table_1.csv
+results/taxonomic_assignments.csv
+results/taxonomic_assignments_filtered.csv
+results/Table_2.csv
+
+# Ignore html files
+README.html
+results/blast_results_taxonomy
+
+
+
