@@ -59,6 +59,9 @@ input/
 validate_file.R
 R/helper_files/
 results/ASV_table.tsv
+results/Table_1.csv
+results/taxonomic_assignments.csv
+results/taxonomic_assignments_filtered.csv
 
 
 # Ignore html files

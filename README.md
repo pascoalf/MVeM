@@ -619,7 +619,7 @@ abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
 
 # Creates abundance table in wide format
 abundance_table_wide <- abundance_table_long %>% 
-  mutate(FinalAssignment = replace_na(FinalAssignment, "Unassigned")) %>%
+  filter(!is.na(FinalAssignment)) %>%
   pivot_wider(names_from = Sample, values_from = Abundance)
 
 table_1 <- abundance_table_wide %>%
