@@ -60,3 +60,7 @@ validate_file.R
 
 # Ignore html files
 README.html
+results/blast_results_taxonomy
+
+
+

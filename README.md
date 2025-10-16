@@ -442,7 +442,7 @@ reference file with all possible target gene accessions.
 
 ``` r
 # Target genes
-target_genes <- read.table("refs/gene_16_list.txt", header = FALSE) ## last accessed 23 May 2025
+target_genes <- read.table("refs/Accessions_Chordata_mithocondrion.txt", header = FALSE) ## last accessed 16 Oct 2025
 # Some data cleaning
 target_genes <- target_genes %>% 
   rename(Subject.accession = V1) %>% 
