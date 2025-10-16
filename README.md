@@ -437,7 +437,7 @@ ban_list <- read.table("./refs/ban_list.txt", header = FALSE) %>%
 ## Prevent match with non-16S genes
 
 Additionally, we also need to ensure that we are not obtaining matches
-from non-16S genes. To do so, we filter all accessions based on a
+from non-mitochondrial genes. To do so, we filter all accessions based on a
 reference file with all possible target gene accessions.
 
 ``` r
