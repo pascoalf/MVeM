@@ -1,6 +1,9 @@
 # remove contamination
 # function to remove ASVs identified in the control respective to a sample
-remove_contamination <- function(data, sample, map_sample = sample_control_map_long, treshold = NULL, option = "treshold", ...){
+remove_contamination <- function(data, sample, 
+                                 map_sample = sample_control_map_long, 
+                                 treshold = NULL, option = "treshold", 
+                                 output = "standard", ...){
   # make helper function to extract specific controls
   extract_controls <- function(x = sample_control_map_long,
                                asvs_original = data, 
@@ -56,7 +59,13 @@ remove_contamination <- function(data, sample, map_sample = sample_control_map_l
    anti_join(safe_ASVs.df, by = "ASV")
 
   #
-  data %>%
-    filter(Sample == sample) %>% 
-    filter(!ASV %in% asvs_in_control.df$ASV)
+  if(output == "standard"){
+    no_cont_table <- data %>%
+      filter(Sample == sample) %>% 
+      filter(!ASV %in% asvs_in_control.df$ASV)
+    return(no_cont_table)
+  } else if(output == "contaminants"){
+    names(asvs_in_control.df) <- sample
+    return(asvs_in_control.df)
+  }
 }
