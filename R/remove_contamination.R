@@ -35,7 +35,7 @@ remove_contamination <- function(data, sample,
   }  
   
   # Obtain control sample IDs
-    extraction_control <- extract_controls(sample = sample, type = "Extraction_control")
+  extraction_control <- extract_controls(sample = sample, type = "Extraction_control")
   filtration_control <- extract_controls(sample = sample, type = "Filtration_control")
   PCR_control <- extract_controls(sample = sample, type = "PCR_control")
   
@@ -44,7 +44,7 @@ remove_contamination <- function(data, sample,
     unique()
 
   # Safe ASVs -- too abundant in original sample to be removed  
-  # Treshold option
+  # Threshold option
   if(is.null(option)){
     data %>%
       filter(Sample == sample) %>% 
@@ -74,6 +74,11 @@ remove_contamination <- function(data, sample,
       anti_join(safe_ASVs.df, by = "ASV")    
   }
 
+  # Select ASVs with zero counts on data
+  emptyASVs <- data %>% 
+    filter(Sample == sample) %>%
+    filter(Abundance == 0) %>% 
+    pull(ASV)
   #
   if(output == "standard"){
     no_cont_table <- data %>%
@@ -81,6 +86,9 @@ remove_contamination <- function(data, sample,
       filter(!ASV %in% asvs_in_control.df$ASV)
     return(no_cont_table)
   } else if(output == "contaminants"){
+    asvs_in_control.df <- 
+      asvs_in_control.df %>% 
+      filter(!ASV %in% emptyASVs)
     names(asvs_in_control.df) <- sample
     return(asvs_in_control.df)
   }
