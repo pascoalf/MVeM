@@ -57,7 +57,7 @@ input/
 
 #
 validate_file.R
-#R/helper_files/
+R/helper_files/
 results/ASV_table.tsv
 results/Table_1.csv
 results/taxonomic_assignments.csv
