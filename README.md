@@ -710,9 +710,84 @@ sample_names <- sample_control_map_df$Sample_name %>% unique()
 
 # Remove contamination for all samples and re-merge in a single data frame
 abundance_table_no_cont <- map(.x = sample_names, 
-                                 .f = ~remove_contamination(data = abundance_table_long_filtered, sample = .x)) %>% 
+                               .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                          sample = .x)) %>% 
   bind_rows()
 
+# To obtain a list of the ASVs that were considered contaminants in each sample
+list_of_contaminants <- map(.x = sample_names, 
+                            .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                       sample = .x, 
+                                                       output = "contaminants")) %>% 
+  bind_rows()
+```
+
+### Additional options for removal of contaminant ASVs
+
+It is possible that some ASVs that are identified in the control samples do not need to
+be removed from the environmental samples, if they have high abundance in the environmental samples.
+
+Therefore, some researchers might apply an abundance threshold to prevent some ASVs from being removed.
+This can be done by setting the arguments *threshold* and *option* in remove_contamination() function:
+
+``` r
+# Example with threshold of 1000 reads, per sample
+example_1000 <- map(.x = sample_names, 
+                    .f = ~remove_contamination(data = abundance_table_long_filtered, 
+                                               sample = .x, 
+                                               threshold = 1000, 
+                                               option = "threshold",
+                                               output = "standard")) %>% 
+  bind_rows()
+
+# If you wanto to verify which ASVs were considered contaminants with a threshold of 1000 reads
+contaminants_1000 <- map(.x = sample_names, 
+                    .f = ~remove_contamination(data = abundance_table_long_filtered, 
+                                               sample = .x,
+                                               threshold = 1000, 
+                                               option = "threshold",
+                                               output = "contaminants")) %>% 
+  bind_rows()
+```
+
+However, the threshold approach implies that a researcher 
+pre-selects an abundance level, which will then be applied for all samples.
+
+To avoid potential bias in the selection of which ASVs to consider 
+contaminants or not, we have added an automatic option.
+The automatic option uses unsupervised learning to classify ASVs within each environmental sample 
+based on their abundance level, using the ulrb R package (Pascoal et al., 2025a,b). By doing so, the function is 
+able to automatically select which ASVs are considered abundant enough to not be removed 
+from the environmental samples. The main advantage of the automatic option is that the
+evaluation of ASVs in one sample is not influenced by the results obtained in another sample, 
+which then prevents issues with uneven sequencing depth across samples.
+
+To apply the automatic option:
+
+``` r
+# Example without threshold
+example_automatic <- map(.x = sample_names, 
+                    .f = ~remove_contamination(data = abundance_table_long_filtered, 
+                                               sample = .x, 
+                                               output = "standard",
+                                               option = "automatic")) %>% 
+  bind_rows()
+
+# If you wanto to verify which ASVs were considered contaminants without thresholds
+contaminants_automatic <- map(.x = sample_names,
+                              .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                         sample = .x,
+                                                         option = "automatic",
+                                                         output = "contaminants")) %>% 
+  bind_rows()
+```
+
+**Save new results**
+
+The next steps show how the results after contamination removal can be stored, using 
+the original process, *i.e.*, without preventing abundant ASVs from being removed.
+
+``` r
 # Convert to wide format
 abundance_table_no_cont_wide <- abundance_table_no_cont %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
