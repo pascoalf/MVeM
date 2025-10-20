@@ -53,7 +53,8 @@ remove_contamination <- function(data, sample,
   } else if(option == "threshold"){
     safe_ASVs <- data %>% 
       filter(Sample == sample) %>%
-      filter(Abundance >= threshold) %>% 
+      mutate(relativeAbundance = Abundance*100/sum(Abundance)) %>% 
+      filter(relativeAbundance >= threshold) %>% 
       pull(ASV) %>% 
       unique()
     safe_ASVs.df <- data.frame(ASV = safe_ASVs)    
