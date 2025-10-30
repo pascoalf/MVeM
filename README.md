@@ -25,6 +25,7 @@ Before starting, we advise the user to create a dedicated directory
 additional directories:
 
 -   R (for R scripts)
+-   refs (for reference files)
 -   input (for input files, like fastq)
 -   results (to store results)
 
@@ -45,9 +46,13 @@ We recommend using either FASTQC (Andrews, 2010) or MultiQC (Ewels,
 ## Pre-processing of FASTQ files
 
 If the FASTQ files include adapter sequences and/or primers, it is
-possible to remove them using Cutadapt, for example.
+possible to remove them using Cutadapt (Martin, 2011):
 
 -   Cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
+
+``` bash
+```
+**Note:** change the file paths and primer sequences as needed.
 
 Primer removal is also possible in the DADA2 section of code, presented
 below. However, **if you remove the primers with Cutadapt, then you must
@@ -63,6 +68,9 @@ library(dada2); packageVersion("dada2") ## we used 1.22
 library(ShortRead)
 library(seqinr) # to make FASTA file
 library(dplyr)
+library(ggplot2)
+library(stringr)
+library(vegan)
 ```
 
 # Obtain unique sequences using DADA2
@@ -77,7 +85,7 @@ are stored and what they refer to. Note that you will need to change the
 path according to your own files.
 
 ``` r
-path <- "./path_to_directory" # CHANGE ME to the directory containing the fastq files after unzipping.
+path <- "./path_to_directory" # CHANGE ME to the directory containing the fastq files after unzipping (and after Cutadapt trimming if applied).
 # Verify files in path
 list.files(path)
 
@@ -128,10 +136,25 @@ alt="Quality profiles of reverse reads - 5 files" />
 files</figcaption>
 </figure>
 
+You can also visualize aggregate quality plots, recommended for large sample sets. You can save the plot in the results folder for later use.
+
 ``` r
 # To inspect many samples at once
-plotQualityProfile(fnFs, aggregate = TRUE)
-plotQualityProfile(fnRs, aggregate = TRUE)
+QProfile_Fw <- plotQualityProfile(fnFs, aggregate = TRUE)
+QProfile_Fw
+ggsave("./results/QProfile_Fw.tiff", 
+       plot = QProfile_Fw, 
+       width = 15, 
+       height = 12, 
+       dpi = 600)
+
+QProfile_Rv <- plotQualityProfile(fnRs, aggregate = TRUE)
+QProfile_Rv
+ggsave("./results/QProfile_Rv.tiff", 
+       plot = QProfile_Rv, 
+       width = 15, 
+       height = 12, 
+       dpi = 600)
 ```
 
 <figure>
@@ -148,7 +171,6 @@ alt="Aggregate quality plot example for reverse reads" />
 reverse reads</figcaption>
 </figure>
 
-Note: You can save the plot in the results folder, for example, for later use.
 
 ## Filter and trim reads
 
@@ -171,7 +193,7 @@ All other parameters are set to default.
 
 ``` r
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
-                     truncLen = c(240,210), ## change according to quality profiles 
+                     truncLen = c(170,150), ## change according to quality profiles 
                      maxN = 0, maxEE = c(2,2), truncQ = 2, rm.phix = TRUE, 
                      compress = TRUE, multithread = FALSE, # On Windows set multithread=FALSE
                      ## OPTIONAL: if you need to remove primers at this stage, you can use trimLeft
@@ -406,7 +428,7 @@ Please see installation instructions at:
 This tool allows the submission of BLAST output as input, using NCBI taxon IDs to retrieve taxonomy information.
 
 ``` bash
-cat blast_results | taxonkit reformat2 -I 15 -r "Unassigned" -f "{domain|acellular root|superkingdom}\t{phylum}\t{class}\t{order}\t{family}\t{genus}\t{species}" | tee blast_results_taxonomy
+cat blast_results | taxonkit reformat2 -I 15 -r "Unassigned" -f "{domain|acellular root|superkingdom}\t{phylum}\t{class}\t{order}\t{family}\t{genus}\t{species}" | tee blast_tax_results
 ```
 **Note:** change the file paths as needed.
 
@@ -420,7 +442,6 @@ For this section we will need additional packages:
 ``` r
 library(tidyr)
 library(ulrb)
-library(stringr)
 library(purrr)
 ```
 
@@ -840,16 +861,16 @@ rownames(df_clean) <- make.unique(as.character(df_clean[[1]]))
 asv_matrix_alpha <- df_clean[, -1]
 
 # Clean sample names by removing suffix
-colnames(asv_matrix_alpha) <- gsub("-16S_S1_L001_R1_001", "", colnames(asv_matrix))
+colnames(asv_matrix_alpha) <- gsub("-16S_S1_L001_R1_001", "", colnames(asv_matrix_alpha))
 
 # Transpose: samples as rows, ASVs as columns
-asv_matrix_alpha_t <- t(asv_matrix)
+asv_matrix_alpha_t <- t(asv_matrix_alpha)
 
 # Remove empty samples (rows with sum 0)
 asv_matrix_alpha_t <- asv_matrix_alpha_t[rowSums(asv_matrix_alpha_t) > 0, ]
 
 # Clean sample names again from filtered matrix rownames (just to be sure)
-rownames(asv_matrix_alpha_t) <- gsub("-16S_S1_L001_R1_001", "", rownames(asv_matrix_t))
+rownames(asv_matrix_alpha_t) <- gsub("-16S_S1_L001_R1_001", "", rownames(asv_matrix_alpha_t))
 
 # Alpha Diversity per Sample (Observed + Shannon)
 # Calculate diversity metrics per sample
@@ -884,7 +905,7 @@ example</figcaption>
 ``` r
 # Beta Diversity (Bray-Curtis)
 # Calculate Bray-Curtis dissimilarity
-bray_dist <- vegdist(asv_matrix_t, method = "bray")
+bray_dist <- vegdist(asv_matrix_alpha_t, method = "bray")
 
 # Perform NMDS (k=2 dimensions)
 set.seed(42); nmds_res <- metaMDS(bray_dist, k = 2, trymax = 100)
@@ -894,7 +915,7 @@ nmds_df <- as.data.frame(nmds_res$points)
 colnames(nmds_df) <- c("NMDS1", "NMDS2")
 
 # Add sample names
-nmds_df$Sample <- rownames(asv_matrix_t)
+nmds_df$Sample <- rownames(asv_matrix_alpha_t)
 
 # Print NMDS stress value
 cat("NMDS stress:", round(nmds_res$stress, 4), "\n")
@@ -1015,5 +1036,7 @@ example</figcaption>
     Bioinformatics. 2016 Oct 1;32(19):3047-8. doi:
     10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411;
     PMCID: PMC5039924.
+    
+-   Martin, M., 2011. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.journal 17, 10–12. https://doi.org/10.14806/ej.17.1.200
 
 -   Shen, W., & Ren, H. (2021). TaxonKit: A practical and efficient NCBI taxonomy toolkit. Journal of genetics and genomics, 48(9), 844-850.
