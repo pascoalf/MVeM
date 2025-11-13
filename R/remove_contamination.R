@@ -72,8 +72,39 @@ remove_contamination <- function(data, sample,
     #
     temp1 <- data %>% 
       filter(Sample %in% control_sample[1,]) %>% 
+      mutate(Source = ifelse(Sample %in% control_sample[1,2], "Control", "Sample")) %>% 
       mutate(Sample = "temp1")
     temp1_ucluster <- suppressWarnings(define_rb(temp1, simplified = TRUE)) 
+    #
+    temp1_ucluster <- temp1_ucluster %>% 
+      select(Source, ASV, Classification) %>% 
+      distinct()
+    
+    # rare in control
+    c_asv_rare <- temp1_ucluster %>% filter(Source == "Control", Classification == "Rare") %>% pull(ASV) %>% unique()
+    # undetermined in control
+    c_asv_und <- temp1_ucluster %>% filter(Source == "Control", Classification == "Undetermined") %>% pull(ASV) %>% unique()
+    # abundant in control
+    c_asv_abu <- temp1_ucluster %>% filter(Source == "Control", Classification == "Abundant") %>% pull(ASV) %>% unique()
+    # rare in env
+    e_asv_rare <- temp1_ucluster %>% filter(Source == "Sample", Classification == "Rare") %>% pull(ASV) %>% unique()
+    # undetermined in control
+    e_asv_und <- temp1_ucluster %>% filter(Source == "Sample", Classification == "Undetermined") %>% pull(ASV) %>% unique()
+    # abundant in control
+    e_asv_abu <- temp1_ucluster %>% filter(Source == "Sample", Classification == "Abundant") %>% pull(ASV) %>% unique()
+    
+    ##
+    asvs_output <- temp1_ucluster %>% 
+      mutate(output = case_when(ASV %in% c_asv_rare & ASV %in% e_asv_rare ~ "Remove",
+                                ASV %in% c_asv_und & ASV %in% e_asv_und ~ "Remove",
+                                ASV %in% c_asv_und ~ "Remove",
+                                ASV %in% c_asv_abu ~ "Remove",
+                                ASV %in% c_asv_rare ~ "Save",
+                                TRUE ~ "Save"))
+    
+    
+    return(asvs_output)
+    stop()
     #
     temp1_asvs <- temp1_ucluster %>% 
       select(Sample, Classification, Abundance, 
