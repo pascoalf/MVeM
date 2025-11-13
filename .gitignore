@@ -57,8 +57,8 @@ input/
 
 #
 validate_file.R
-R/helper_files/
-R/helper_files/bug_check.R
+#R/helper_files/
+#R/helper_files/bug_check.R
 results/ASV_table.tsv
 results/Table_1.csv
 results/taxonomic_assignments.csv
@@ -69,5 +69,8 @@ results/abundance_table_long_filtered.csv
 README.html
 results/blast_results_taxonomy
 
-
-
+# temp
+temp1_test.csv
+R/helper_files/merge_tables_refs.R
+R/helper_files/out_rc2_M3-2.csv
+R/helper_files/reproduce.R

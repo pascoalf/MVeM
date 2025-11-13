@@ -34,7 +34,7 @@ remove_contamination <- function(data, sample,
     return(control_ASVs)
   }  
   
-  # Obtain control sample IDs
+  # Obtain control sample ASVss
   extraction_control <- extract_controls(sample = sample, type = "Extraction_control")
   filtration_control <- extract_controls(sample = sample, type = "Filtration_control")
   PCR_control <- extract_controls(sample = sample, type = "PCR_control")
@@ -62,6 +62,34 @@ remove_contamination <- function(data, sample,
     asvs_in_control.df <- data.frame(ASV = asvs_in_control) %>% 
       anti_join(safe_ASVs.df, by = "ASV")
   } else if(option == "automatic"){
+    # Make fake sample that combines env and control
+    # for each control
+    control_sample <- map_sample %>% 
+      filter(Control_type == "Extraction_control",
+             Sample_name == sample) %>% 
+      select(Sample_name, Control_ID) %>% 
+      distinct()
+    #
+    temp1 <- data %>% 
+      filter(Sample %in% control_sample[1,]) %>% 
+      mutate(Sample = "temp1")
+    temp1_ucluster <- suppressWarnings(define_rb(temp1, simplified = TRUE)) 
+    #
+    temp1_asvs <- temp1_ucluster %>% 
+      select(Sample, Classification, Abundance, 
+             ASV, FinalAssignment, Evaluation) %>% 
+      filter(Classification != "Rare")
+    #
+    temp1_control_asvs <- filter(data, Abundance > 0, Sample %in% control_sample[1,2]) %>% 
+      pull(ASV) 
+    #
+    temp1_keep <- temp1_asvs %>% 
+      filter(ASV %in% temp1_control_asvs) %>% 
+      pull(ASV) %>% 
+      unique()
+    return(temp1_keep)
+
+    stop()
     # unsupervised clustering
     ucluster <- suppressWarnings(define_rb(data))
     safe_ASVs <- ucluster %>% 
