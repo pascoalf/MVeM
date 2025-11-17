@@ -5,7 +5,7 @@ source("./R/remove_contamination.R")
 sample_names <- sample_control_map_df$Sample_name %>% unique() 
 
 # Remove contamination for all samples and re-merge in a single data frame
-abundance_table_no_cont <- map(.x = sample_names, 
+abundance_table_no_cont <- map(.x = sample_names[1:5], 
                                .f = ~remove_contamination(data = mi_table,
                                                           sample = .x, 
                                                           output = "standard",

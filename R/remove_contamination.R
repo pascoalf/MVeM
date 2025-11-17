@@ -63,19 +63,19 @@ remove_contamination <- function(data, sample,
     # by temporary combination of env and control sample
     remove_from_control <- function(type = "Extraction_control", ...){
       # Get sample and respective control
-      control_sample <- map_sample %>% 
+      control_sample <- map_sample %>%
         filter(Control_type == type,
                Sample_name == sample) %>% 
         select(Sample_name, Control_ID) %>% 
         distinct()
 
       # Combine sample and control temporarily
-      temp1 <- data %>% 
+      temp1 <- data %>% ungroup() %>% 
         filter(Sample %in% control_sample[1,]) %>% 
         mutate(Source = ifelse(Sample %in% control_sample[1,2], "Control", "Sample")) %>% 
         mutate(Sample = "temp1") %>% 
         filter(Abundance > 0)
-      
+
       # Cluster using ulrb
         if(dim(temp1)[1] == 3){
               temp1_ucluster <- suppressWarnings(
@@ -84,16 +84,15 @@ remove_contamination <- function(data, sample,
                   classification_vector = c("Rare", "Abundant"),
                   simplified = TRUE))
         } else if(dim(temp1)[1] < 3){
-          temp1_ucluster <- suppressWarnings(
-            define_rb(temp1, 
-                      classification_vector = c("Undetermined"),
-                      simplified = TRUE))
+          # Manual input
+          temp1_ucluster <- temp1 %>% 
+            mutate(Classification = "Undetermined")
           } else {
             temp1_ucluster <- suppressWarnings(
               define_rb(temp1, 
                         simplified = TRUE))
             }
-      
+
       # Reformat after clustering
       temp1_ucluster <- temp1_ucluster %>% 
         select(Source, ASV, Classification) %>% 
@@ -124,21 +123,26 @@ remove_contamination <- function(data, sample,
       
       # output is a data frame with ASVs to save
       remove_asvs <- asvs_output %>% 
-        filter(ASV %in% extraction_control) %>% 
+        filter(ASV %in% extract_controls(sample = sample, type = type)) %>% 
         filter(output == "Remove")
+  
+      # in case there is nothing
+      if(dim(remove_asvs)[1] == 0){
+        remove_asvs <- data.frame(Source = NA, ASV = NA, Classification = NA, output = NA)
+      }
+      return(remove_asvs)
     }
-    inspect <- remove_from_control()
-    return(inspect)
-    stop()
+    
     # for each control type
     asvs_in_control.df <- map(.x = c("Extraction_control", "Filtration_control","PCR_control"),
         .f = ~remove_from_control(type = .x)) %>% 
       bind_rows() %>% ungroup() %>% 
       select(ASV) %>% 
-      distinct()
+      distinct() %>% 
+      filter(!is.na(ASV))
   }
-
-  # Select ASVs with zero counts on data
+  
+  # Select ASVs with zero counts in data
   emptyASVs <- data %>% 
     filter(Sample == sample) %>%
     filter(Abundance == 0) %>% 
