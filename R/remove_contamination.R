@@ -68,13 +68,32 @@ remove_contamination <- function(data, sample,
                Sample_name == sample) %>% 
         select(Sample_name, Control_ID) %>% 
         distinct()
+
       # Combine sample and control temporarily
       temp1 <- data %>% 
         filter(Sample %in% control_sample[1,]) %>% 
         mutate(Source = ifelse(Sample %in% control_sample[1,2], "Control", "Sample")) %>% 
-        mutate(Sample = "temp1")
+        mutate(Sample = "temp1") %>% 
+        filter(Abundance > 0)
+      
       # Cluster using ulrb
-      temp1_ucluster <- suppressWarnings(define_rb(temp1, simplified = TRUE)) 
+        if(dim(temp1)[1] == 3){
+              temp1_ucluster <- suppressWarnings(
+                define_rb(
+                  temp1, 
+                  classification_vector = c("Rare", "Abundant"),
+                  simplified = TRUE))
+        } else if(dim(temp1)[1] < 3){
+          temp1_ucluster <- suppressWarnings(
+            define_rb(temp1, 
+                      classification_vector = c("Undetermined"),
+                      simplified = TRUE))
+          } else {
+            temp1_ucluster <- suppressWarnings(
+              define_rb(temp1, 
+                        simplified = TRUE))
+            }
+      
       # Reformat after clustering
       temp1_ucluster <- temp1_ucluster %>% 
         select(Source, ASV, Classification) %>% 
@@ -102,11 +121,15 @@ remove_contamination <- function(data, sample,
                                   ASV %in% c_asv_abu ~ "Remove",
                                   ASV %in% c_asv_rare ~ "Save",
                                   TRUE ~ "Save"))
+      
       # output is a data frame with ASVs to save
       remove_asvs <- asvs_output %>% 
         filter(ASV %in% extraction_control) %>% 
         filter(output == "Remove")
     }
+    inspect <- remove_from_control()
+    return(inspect)
+    stop()
     # for each control type
     asvs_in_control.df <- map(.x = c("Extraction_control", "Filtration_control","PCR_control"),
         .f = ~remove_from_control(type = .x)) %>% 

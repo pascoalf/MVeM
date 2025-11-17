@@ -7,14 +7,17 @@ sample_names <- sample_control_map_df$Sample_name %>% unique()
 # Remove contamination for all samples and re-merge in a single data frame
 abundance_table_no_cont <- map(.x = sample_names, 
                                .f = ~remove_contamination(data = mi_table,
-                                                          sample = .x)) %>% 
+                                                          sample = .x, 
+                                                          output = "standard",
+                                                          option = "automatic")) %>% 
   bind_rows()
 
 # To obtain a list of the ASVs that were considered contaminants in each sample
 list_of_contaminants <- map(.x = sample_names, 
                             .f = ~remove_contamination(data = mi_table,
                                                        sample = .x, 
-                                                       output = "contaminants")) %>% 
+                                                       output = "contaminants", 
+                                                       option = "automatic")) %>% 
   bind_rows()
 
 #
