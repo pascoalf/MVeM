@@ -95,3 +95,14 @@ temp1_test <- remove_contamination(data = mi_data2,
                      option = "automatic") %>% as.data.frame()
 
 write.csv(temp1_test, "temp1_test.csv")
+
+
+
+source("R/remove_contamination.R")
+remove_contamination(data = mi_data2, 
+                     sample = "M3-2-16S_S1_L001_R1_001", 
+                     map_sample = sample_control_map_long,
+                     output = "contaminants",
+                     option = "automatic")
+
+
