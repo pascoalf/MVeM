@@ -65,6 +65,9 @@ results/taxonomic_assignments.csv
 results/taxonomic_assignments_filtered.csv
 results/Table_2.csv
 results/abundance_table_long_filtered.csv
+rc2_all_contaminants.csv
+rc2_all_samples.csv
+
 # Ignore html files
 README.html
 results/blast_results_taxonomy
