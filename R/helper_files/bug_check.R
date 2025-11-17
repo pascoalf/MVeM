@@ -99,10 +99,13 @@ write.csv(temp1_test, "temp1_test.csv")
 
 
 source("R/remove_contamination.R");
-remove_contamination(data = mi_data2, 
-                     sample = "M2-1-NZY-16S_S1_L001_R1_001", 
+remove_contamination(data = mi_table, 
+                     sample = "M2-3-16S_S1_L001_R1_001", 
                      map_sample = sample_control_map_long,
-                     output = "contaminants",
+                     output = "saved",
                      option = "automatic")
+#
+mi_table %>% filter(Sample %in% c("M3-2-16S_S1_L001_R1_001","CE2-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001", "BPCRP-16S_S1_L001_R1_001")) %>% View()
 
 #
+mi_table$Sample %>% unique()

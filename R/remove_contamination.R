@@ -10,7 +10,7 @@ remove_contamination <- function(data, sample,
       stop("The option argument can be either 'automatic' or 'threshold'")
     }
   }
-  if(!output %in% c("standard", "contaminants")){
+  if(!output %in% c("standard", "contaminants", "saved")){
     stop("The output argument can be either 'standard' or 'contaminants'")
   }
   # make helper function to extract specific controls
@@ -97,7 +97,6 @@ remove_contamination <- function(data, sample,
       temp1_ucluster <- temp1_ucluster %>% 
         select(Source, ASV, Classification) %>% 
         distinct()
-      
       ## Extract all possibilities
       # rare in control
       c_asv_rare <- temp1_ucluster %>% filter(Source == "Control", Classification == "Rare") %>% pull(ASV) %>% unique()
@@ -118,21 +117,29 @@ remove_contamination <- function(data, sample,
                                   ASV %in% c_asv_und & ASV %in% e_asv_und ~ "Remove",
                                   ASV %in% c_asv_und ~ "Remove",
                                   ASV %in% c_asv_abu ~ "Remove",
-                                  ASV %in% c_asv_rare ~ "Save",
-                                  TRUE ~ "Save"))
+                                  ASV %in% c_asv_rare & ASV %in% e_asv_und ~ "Save",
+                                  ASV %in% c_asv_rare & ASV %in% e_asv_abu ~ "Save",
+                                  TRUE ~ NA))
       
       # output is a data frame with ASVs to save
       remove_asvs <- asvs_output %>% 
         filter(ASV %in% extract_controls(sample = sample, type = type)) %>% 
         filter(output == "Remove")
-  
+      # alternative output
+      save_asvs <- asvs_output %>% 
+        filter(ASV %in% extract_controls(sample = sample, type = type)) %>% 
+        filter(output != "Remove")
       # in case there is nothing
       if(dim(remove_asvs)[1] == 0){
         remove_asvs <- data.frame(Source = NA, ASV = NA, Classification = NA, output = NA)
+        save_asvs <- data.frame(Source = NA, ASV = NA, Classification = NA, output = NA)
       }
-      return(remove_asvs)
+      if(output == "saved"){
+        return(save_asvs)
+      } else {
+        return(remove_asvs)        
+      }
     }
-    
     # for each control type
     asvs_in_control.df <- map(.x = c("Extraction_control", "Filtration_control","PCR_control"),
         .f = ~remove_from_control(type = .x)) %>% 
@@ -160,5 +167,8 @@ remove_contamination <- function(data, sample,
       filter(!ASV %in% emptyASVs)
     names(asvs_in_control.df) <- sample
     return(asvs_in_control.df)
+  } else if(output == "saved"){
+    return(asvs_in_control.df)
+    warning("This option is under test!")
   }
 }

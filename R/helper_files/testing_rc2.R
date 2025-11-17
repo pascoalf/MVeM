@@ -23,3 +23,18 @@ list_of_contaminants <- map(.x = sample_names,
 #
 write.csv(abundance_table_no_cont, "./rc2_all_samples.csv")
 write.csv(list_of_contaminants, "./rc2_all_contaminants.csv")
+
+
+source("./R/remove_contamination.R"); map(.x = sample_names, 
+    .f = ~remove_contamination(data = mi_table,
+                               sample = .x, 
+                               output = "saved", 
+                               option = "automatic"))
+
+
+remove_contamination(data = mi_table, 
+                     sample = "M2-1-NZY-16S_S1_L001_R1_001", 
+                     map_sample = sample_control_map_long,
+                     output = "saved",
+                     option = "automatic")
+#
