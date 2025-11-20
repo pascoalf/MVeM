@@ -25,6 +25,7 @@ Before starting, we advise the user to create a dedicated directory
 additional directories:
 
 -   R (for R scripts)
+-   refs (for reference files)
 -   input (for input files, like fastq)
 -   results (to store results)
 
@@ -45,9 +46,22 @@ We recommend using either FASTQC (Andrews, 2010) or MultiQC (Ewels,
 ## Pre-processing of FASTQ files
 
 If the FASTQ files include adapter sequences and/or primers, it is
-possible to remove them using Cutadapt, for example.
+possible to remove them using Cutadapt (Martin, 2011):
 
 -   Cutadapt: <https://cutadapt.readthedocs.io/en/stable/>
+
+``` bash
+for r1 in *_R1_*.fastq.gz; do
+    r2=${r1/_R1_/_R2_}
+    cutadapt \
+	-a "AGACGAGAAGACCCTATG;e=0.15;o=5...GGGATAACAGCGCAATCC;e=0.15;o=5" \
+	-A "GGATTGCGCTGTTATCCC;e=0.15;o=5...CATAGGGTCTTCTCGTCT;e=0.15;o=5" \
+	-q 20 \
+	-o Trimmed/${r1} \
+	-p Trimmed/${r2} ${r1} ${r2}
+done
+```
+**Note:** change the file paths and primer sequences as needed.
 
 Primer removal is also possible in the DADA2 section of code, presented
 below. However, **if you remove the primers with Cutadapt, then you must
@@ -63,6 +77,9 @@ library(dada2); packageVersion("dada2") ## we used 1.22
 library(ShortRead)
 library(seqinr) # to make FASTA file
 library(dplyr)
+library(ggplot2)
+library(stringr)
+library(vegan)
 ```
 
 # Obtain unique sequences using DADA2
@@ -77,7 +94,7 @@ are stored and what they refer to. Note that you will need to change the
 path according to your own files.
 
 ``` r
-path <- "./path_to_directory" # CHANGE ME to the directory containing the fastq files after unzipping.
+path <- "./path_to_directory" # CHANGE ME to the directory containing the fastq files after unzipping (and after Cutadapt trimming if applied).
 # Verify files in path
 list.files(path)
 
@@ -128,10 +145,25 @@ alt="Quality profiles of reverse reads - 5 files" />
 files</figcaption>
 </figure>
 
+You can also visualize aggregate quality plots, recommended for large sample sets. You can save the plot in the results folder for later use.
+
 ``` r
 # To inspect many samples at once
-plotQualityProfile(fnFs, aggregate = TRUE)
-plotQualityProfile(fnRs, aggregate = TRUE)
+QProfile_Fw <- plotQualityProfile(fnFs, aggregate = TRUE)
+QProfile_Fw
+ggsave("./results/QProfile_Fw.tiff", 
+       plot = QProfile_Fw, 
+       width = 15, 
+       height = 12, 
+       dpi = 600)
+
+QProfile_Rv <- plotQualityProfile(fnRs, aggregate = TRUE)
+QProfile_Rv
+ggsave("./results/QProfile_Rv.tiff", 
+       plot = QProfile_Rv, 
+       width = 15, 
+       height = 12, 
+       dpi = 600)
 ```
 
 <figure>
@@ -148,7 +180,6 @@ alt="Aggregate quality plot example for reverse reads" />
 reverse reads</figcaption>
 </figure>
 
-Note: You can save the plot in the results folder, for example, for later use.
 
 ## Filter and trim reads
 
@@ -171,7 +202,7 @@ All other parameters are set to default.
 
 ``` r
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
-                     truncLen = c(240,210), ## change according to quality profiles 
+                     truncLen = c(170,150), ## change according to quality profiles 
                      maxN = 0, maxEE = c(2,2), truncQ = 2, rm.phix = TRUE, 
                      compress = TRUE, multithread = FALSE, # On Windows set multithread=FALSE
                      ## OPTIONAL: if you need to remove primers at this stage, you can use trimLeft
@@ -290,6 +321,40 @@ ASV_table <- seqtab.nochim
 write.table(ASV_table, file='./results/ASV_table.tsv', quote = FALSE, sep = '\t', col.names = NA)
 ```
 
+## Rarefaction curves
+
+After saving the ASV table, you can assess sequencing depth across samples by generating rarefaction curves.
+
+``` r
+# Load ASV table (from DADA2 output)
+# The ASV.table is a TSV file where samples are rows and ASV sequences are columns
+ASV_rarefaction <- read.delim("ASV_table1_eDNA.tsv", header = TRUE, row.names = 1, sep = "\t", check.names = FALSE)
+
+# Replace NA's with 0
+ASV_rarefaction[is.na(ASV_rarefaction)] <- 0
+
+# Ensure all entries are numeric (in case they were read as characters)
+ASV_rarefaction <- apply(ASV_rarefaction, 2, as.numeric)
+rownames(ASV_rarefaction) <- rownames(read.delim("ASV_table1_eDNA.tsv", header = TRUE, sep = "\t", check.names = FALSE, row.names = 1))
+
+# Replace sample names to shorter version
+rownames(ASV_rarefaction) <- str_remove(rownames(ASV_rarefaction), "-16S_S1_L001_R1_001")
+
+# Rarefaction curve
+rarecurve(
+  ASV_rarefaction,
+  step = 500,
+  xlab = "Sequencing depth",
+  ylab = "Number of ASVs"
+)
+```
+
+<figure>
+<img src="results/RarefactionCurves_example.png"
+alt="Rarefaction curve example" />
+<figcaption aria-hidden="true">Rarefaction curve example</figcaption>
+</figure>
+
 ## Export reads to a FASTA file
 
 Generally, it is useful to have the final unique sequences in a FASTA
@@ -372,7 +437,7 @@ Please see installation instructions at:
 This tool allows the submission of BLAST output as input, using NCBI taxon IDs to retrieve taxonomy information.
 
 ``` bash
-cat blast_results | taxonkit reformat2 -I 15 -r "Unassigned" -f "{domain|acellular root|superkingdom}\t{phylum}\t{class}\t{order}\t{family}\t{genus}\t{species}" | tee blast_results_taxonomy
+cat blast_results | taxonkit reformat2 -I 15 -r "Unassigned" -f "{domain|acellular root|superkingdom}\t{phylum}\t{class}\t{order}\t{family}\t{genus}\t{species}" | tee blast_tax_results
 ```
 **Note:** change the file paths as needed.
 
@@ -386,7 +451,6 @@ For this section we will need additional packages:
 ``` r
 library(tidyr)
 library(ulrb)
-library(stringr)
 library(purrr)
 ```
 
@@ -676,9 +740,84 @@ sample_names <- sample_control_map_df$Sample_name %>% unique()
 
 # Remove contamination for all samples and re-merge in a single data frame
 abundance_table_no_cont <- map(.x = sample_names, 
-                                 .f = ~remove_contamination(data = abundance_table_long_filtered, sample = .x)) %>% 
+                               .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                          sample = .x)) %>% 
   bind_rows()
 
+# To obtain a list of the ASVs that were considered contaminants in each sample
+list_of_contaminants <- map(.x = sample_names, 
+                            .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                       sample = .x, 
+                                                       output = "contaminants")) %>% 
+  bind_rows()
+```
+
+### Additional options for removal of contaminant ASVs
+
+It is possible that some ASVs that are identified in the control samples do not need to
+be removed from the environmental samples, if they have high abundance in the environmental samples.
+
+Therefore, some researchers might apply an abundance threshold to prevent some ASVs from being removed.
+This can be done by setting the arguments *threshold* and *option* in remove_contamination() function:
+
+``` r
+# Example with threshold of 1000 reads, per sample
+example_1000 <- map(.x = sample_names, 
+                    .f = ~remove_contamination(data = abundance_table_long_filtered, 
+                                               sample = .x, 
+                                               threshold = 1000, 
+                                               option = "threshold",
+                                               output = "standard")) %>% 
+  bind_rows()
+
+# If you wanto to verify which ASVs were considered contaminants with a threshold of 1000 reads
+contaminants_1000 <- map(.x = sample_names, 
+                    .f = ~remove_contamination(data = abundance_table_long_filtered, 
+                                               sample = .x,
+                                               threshold = 1000, 
+                                               option = "threshold",
+                                               output = "contaminants")) %>% 
+  bind_rows()
+```
+
+However, the threshold approach implies that a researcher 
+pre-selects an abundance level, which will then be applied for all samples.
+
+To avoid potential bias in the selection of which ASVs to consider 
+contaminants or not, we have added an automatic option.
+The automatic option uses unsupervised learning to classify ASVs within each environmental sample 
+based on their abundance level, using the ulrb R package (Pascoal et al., 2025a,b). By doing so, the function is 
+able to automatically select which ASVs are considered abundant enough to not be removed 
+from the environmental samples. The main advantage of the automatic option is that the
+evaluation of ASVs in one sample is not influenced by the results obtained in another sample, 
+which then prevents issues with uneven sequencing depth across samples.
+
+To apply the automatic option:
+
+``` r
+# Example without threshold
+example_automatic <- map(.x = sample_names, 
+                    .f = ~remove_contamination(data = abundance_table_long_filtered, 
+                                               sample = .x, 
+                                               output = "standard",
+                                               option = "automatic")) %>% 
+  bind_rows()
+
+# If you wanto to verify which ASVs were considered contaminants without thresholds
+contaminants_automatic <- map(.x = sample_names,
+                              .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                         sample = .x,
+                                                         option = "automatic",
+                                                         output = "contaminants")) %>% 
+  bind_rows()
+```
+
+**Save new results**
+
+The next steps show how the results after contamination removal can be stored, using 
+the original process, *i.e.*, without preventing abundant ASVs from being removed.
+
+``` r
 # Convert to wide format
 abundance_table_no_cont_wide <- abundance_table_no_cont %>% 
   pivot_wider(names_from = Sample, values_from = Abundance)
@@ -706,42 +845,8 @@ library(scales)
 library(ggplot2)
 ```
 
-We provide some examples of data analyses below.
+We provide some examples of data analyses below, namely visualization of alpha and beta diversity across your data, and originating reads' relative abundance plots for all taxonomic levels.
 
-## Rarefaction curves
-
-``` r
-# Step for rarefaction curve
-# Remove unnecessary columns
-ASV_matrix.1 <- abundance_table_no_cont_wide %>% 
-  select(-Sequence, -FinalAssignment, -Bit.Score, -evalue, -Alignment.length, -Percentage.of.identical.matches, -Number.of.identical.matches, -Number.of.mismatches, -Domain, -Phylum, -Class, -Order, -Family, -Genus, -Species) 
-
-#
-asv_col <- ASV_matrix.1$ASV
-ASV_matrix.1$ASV <- NULL
-rownames(ASV_matrix.1) <- asv_col
-
-#  
-ASV_matrix <- ASV_matrix.1 %>% t()
-
-# Replace NA's to 0
-ASV_matrix[is.na(ASV_matrix)] <- 0
-
-# Replace sample name to shorter version
-rownames(ASV_matrix) <- str_remove(rownames(ASV_matrix), "-16S_S1_L001_R1_001")
-
-# Rarefaction curve
-rarecurve(ASV_matrix, 
-          step = 500, 
-          xlab = "Sequencing depth",
-          ylab = "Number of ASVs")
-```
-
-<figure>
-<img src="results/rarefaction_curve_example.png"
-alt="Rarefaction curve example" />
-<figcaption aria-hidden="true">Rarefaction curve example</figcaption>
-</figure>
 
 ## Example of quick diversity analysis
 
@@ -765,16 +870,16 @@ rownames(df_clean) <- make.unique(as.character(df_clean[[1]]))
 asv_matrix_alpha <- df_clean[, -1]
 
 # Clean sample names by removing suffix
-colnames(asv_matrix_alpha) <- gsub("-16S_S1_L001_R1_001", "", colnames(asv_matrix))
+colnames(asv_matrix_alpha) <- gsub("-16S_S1_L001_R1_001", "", colnames(asv_matrix_alpha))
 
 # Transpose: samples as rows, ASVs as columns
-asv_matrix_alpha_t <- t(asv_matrix)
+asv_matrix_alpha_t <- t(asv_matrix_alpha)
 
 # Remove empty samples (rows with sum 0)
 asv_matrix_alpha_t <- asv_matrix_alpha_t[rowSums(asv_matrix_alpha_t) > 0, ]
 
 # Clean sample names again from filtered matrix rownames (just to be sure)
-rownames(asv_matrix_alpha_t) <- gsub("-16S_S1_L001_R1_001", "", rownames(asv_matrix_t))
+rownames(asv_matrix_alpha_t) <- gsub("-16S_S1_L001_R1_001", "", rownames(asv_matrix_alpha_t))
 
 # Alpha Diversity per Sample (Observed + Shannon)
 # Calculate diversity metrics per sample
@@ -809,7 +914,7 @@ example</figcaption>
 ``` r
 # Beta Diversity (Bray-Curtis)
 # Calculate Bray-Curtis dissimilarity
-bray_dist <- vegdist(asv_matrix_t, method = "bray")
+bray_dist <- vegdist(asv_matrix_alpha_t, method = "bray")
 
 # Perform NMDS (k=2 dimensions)
 set.seed(42); nmds_res <- metaMDS(bray_dist, k = 2, trymax = 100)
@@ -819,7 +924,7 @@ nmds_df <- as.data.frame(nmds_res$points)
 colnames(nmds_df) <- c("NMDS1", "NMDS2")
 
 # Add sample names
-nmds_df$Sample <- rownames(asv_matrix_t)
+nmds_df$Sample <- rownames(asv_matrix_alpha_t)
 
 # Print NMDS stress value
 cat("NMDS stress:", round(nmds_res$stress, 4), "\n")
@@ -854,8 +959,11 @@ custom_colors <- c(
 # Loop through each taxonomic level to create relative abundance plots
 for (tax in tax_levels) {
   
-  # Aggregate counts at the taxonomic level
+  # Remove rows with NA in the current taxonomic level
   df_tax <- df_relativeabundance %>%
+    filter(!is.na(.data[[tax]])) %>%  # <-- added line
+  
+  # Aggregate counts at the taxonomic level
     group_by(across(all_of(tax))) %>%
     summarise(across(where(is.numeric), sum), .groups = "drop")
   
@@ -937,5 +1045,7 @@ example</figcaption>
     Bioinformatics. 2016 Oct 1;32(19):3047-8. doi:
     10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PMID: 27312411;
     PMCID: PMC5039924.
+    
+-   Martin, M., 2011. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.journal 17, 10–12. https://doi.org/10.14806/ej.17.1.200
 
 -   Shen, W., & Ren, H. (2021). TaxonKit: A practical and efficient NCBI taxonomy toolkit. Journal of genetics and genomics, 48(9), 844-850.

@@ -1,8 +1,8 @@
-# function to check ties
+# Check ties function
 check_ties <- function(x){
   x %>%
-    pull(Scientific.name) %>% 
+    pull(Species) %>% 
     unique() %>% 
     word() %>%
     unique() 
-}
+} 

@@ -5,152 +5,173 @@ library(ulrb)
 library(stringr)
 library(purrr)
 
-# load blast results
-all_hits <- read.csv("../eDNA/blast_results_atlantida", header = FALSE, # change file path as needed
+# Load blast results
+all_hits <- read.table("./results/blast_results_taxonomy", header = FALSE, sep = "\t", # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
                                    "Subject sequence length",   "evalue", "Bit Score",
                                    "Raw Score", "Alignment length", "Percentage of identical matches",
                                    "Number of identical matches",   "Number of mismatches",
                                    "Number of positive scoring matches", "Total number of gaps",
-                                   "Taxonomy ID", "Scientific name",    "Subject blast name", 
-                                   "Subject common name"))
+                                   "Taxonomy ID", "Scientific name",    "Subject blast name", "Subject common name",
+                                   "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"))
 
-# ban list
+# Ban list
 ban_list <- read.table("./refs/ban_list.txt", header = FALSE) %>% 
   rename(Genus = V1,
          Species = V2) %>% 
   mutate(binomial_name = paste(Genus, Species)) %>% 
   pull(binomial_name)
 
-# target genes
-target_genes <- read.table("../eDNA/lista_accessions_16S.seq", header = FALSE)
-# some data cleaning
-target_genes <- target_genes %>% 
-  rename(Subject.accession = V1) %>% 
-  mutate(Subject.accession = str_remove(Subject.accession, "\\.\\d+"))
+# Target genes
+target_genes <- read.table("refs/accession_mitochondrial_list.txt", header = TRUE) ## last accessed 16 Oct 2025
 
+# Filter valid hits
 filtered_hits <- all_hits %>%
   filter(Alignment.length >= 190,
          !Scientific.name %in% ban_list,
          Subject.accession %in% target_genes$Subject.accession,
-         Subject.blast.name %in% c("bony fishes", "whales & dolphins", "sharks & rays")) %>% 
+         # Remove environmental sample rows
+         !grepl("environmental sample", Species, ignore.case = TRUE)) %>%
+         # Normalize to first two words for species-level matching
+         mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Species))
 
-# Obtain top hits and Remove environmental samples hits before summarizing
+# Obtain top hits and remove environmental samples hits before summarizing
 top_hits <- filtered_hits %>%
-  # Remove environmental sample rows before anything else
-  filter(!grepl("environmental sample", Scientific.name, ignore.case = TRUE)) %>% 
-  
-  # Normalize to first two words for species-level matching
-  mutate(Scientific.name = sub("^([A-Za-z]+\\s+[A-Za-z]+).*", "\\1", Scientific.name)) %>%
-  
   group_by(Query.accession) %>%
   filter(Bit.Score == max(Bit.Score)) %>%
   filter(Percentage.of.identical.matches == max(Percentage.of.identical.matches)) %>% 
   ungroup()
 
-
 source("check_ties.R")
 source("assign_LCA.R")
 
-# Add reference for families
-delphinidae_family <- read.table("delphinidae_family.txt"); names(delphinidae_family) <- "Genus"
-pleuronectidae_family <- read.table("pleuronectidae_family.txt"); names(pleuronectidae_family) <- "Genus"
-ziphiidae_family <- read.table("ziphiidae_family.txt"); names(ziphiidae_family) <- "Genus"
-salmonidae_family <- read.table("Salmonidae_family.txt"); names(salmonidae_family) <- "Genus"
-mugilidae_family <- read.table("Mugilidae_family.txt"); names(mugilidae_family) <- "Genus"
-
-# best hits, with LCA
+# Best hits, with LCA
 taxonomic_assignments <- top_hits %>%
   group_by(Query.accession) %>% 
   nest() %>% 
   mutate(LCA = map(.x = data, 
-                   .f = ~assign_LCA(.x))) %>% 
-  mutate(taxa = map(.x = data, .f = ~unique(.x$Scientific.name))) %>% 
-  mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>% 
-  unnest(c(LCA, data, isTie)) %>% 
+                   .f = ~assign_LCA(.x)[1])) %>% 
+  mutate(taxa = map(.x = data, .f = ~unique(.x$Species))) %>% 
+  mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>%
+  mutate(Level = map(.x = data, 
+                     .f = ~assign_LCA(.x)[2])) %>% 
+  unnest(c(LCA, Level, data, isTie)) %>% 
   group_by(Query.accession) %>% 
   slice_head(n = 1) %>% 
-  mutate(FinalAssignment = ifelse(isTRUE(isTie), LCA, Scientific.name)) %>% 
+  mutate(FinalAssignment = ifelse(isTRUE(isTie), LCA, Species)) %>% 
+  mutate(Species = ifelse(!is.na(Level), NA, Species)) %>% 
+  mutate(Genus = case_when(Level == "Genus" ~ NA, TRUE ~ Genus)) %>% 
+  mutate(Family = case_when(Level == "Family" ~ NA, TRUE ~ Family)) %>% 
   select(Query.accession,
-         Scientific.name, 
-         LCA, FinalAssignment, 
+         FinalAssignment, 
          Bit.Score, evalue, Alignment.length,
          Percentage.of.identical.matches,
          Number.of.identical.matches,
-         Number.of.mismatches)
+         Number.of.mismatches,
+         Domain, Phylum, Class,
+         Order, Family, Genus,
+         Species)
 
-# view results in your R session
-View(taxonomic_assignments)
-
-# Save final assignments into memory
-#write.csv(taxonomic_assignments, "taxonomic_assignments_atlantida.csv")
-
-# transform blast results to compatible format
-ASV_ncbi <- taxonomic_assignments %>% 
-  select(ASV = Query.accession, FinalAssignment) %>% 
+tax_assign_merged <- taxonomic_assignments %>% 
+  select(ASV = Query.accession,
+         FinalAssignment, 
+         Bit.Score, evalue, Alignment.length,
+         Percentage.of.identical.matches,
+         Number.of.identical.matches,
+         Number.of.mismatches,
+         Domain, Phylum, Class,
+         Order, Family, Genus,
+         Species) %>% 
   filter(!is.na(FinalAssignment)) %>%  # Remove unassigned ASVs
   left_join(ASVs.df, by = "ASV") # ASVs.df was made in the DADA2 section
 
-# Create abundance table (long format)
+# View results in your R session
+View(tax_assign_merged)
+
+# Save taxonomic assignments into memory
+write.csv(tax_assign_merged, "results/taxonomic_assignments.csv", row.names = FALSE)
+
+filt_tax_assignments <- tax_assign_merged %>%
+  filter(Class %in% c("Mammalia", "Actinopteri", "Chondrichthyes"))
+
+# Save final taxonomic assignments into memory
+write.csv(filt_tax_assignments, "results/taxonomic_assignments_filtered.csv", row.names = FALSE)
+
+# Create abundance table in long format
 abundance_table_long <- ASV_table %>% # ASV_table was made in DADA2 section
   prepare_tidy_data(sample_names = row.names(ASV_table), samples_in = "rows") %>% 
   rename(Sequence = Taxa_id) %>% 
   left_join(ASVs.df, by = "Sequence") %>% 
-  left_join(ASV_ncbi, by = "ASV")
+  left_join(filt_tax_assignments, by = "ASV")
 
-# Filter local low abundance (< 0.01%)
-total_reads <- abundance_table_long %>%
-  group_by(Sample) %>%
-  summarise(total = sum(Abundance, na.rm = TRUE))
-
-abundance_table_long_filtered <- abundance_table_long %>%
-  left_join(total_reads, by = "Sample") %>%
-  mutate(freq = Abundance / total * 100,
-         Abundance = ifelse(freq < 0.01, 0, Abundance)) %>%
-  select(-total, -freq)
-
-## Create control map, connecting samples to their controls
-sample_control_map <- list(
-  "M1-1-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-1-16S_S1_L001_R1_001"),
-  "M1-2-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-2-16S_S1_L001_R1_001"),
-  "M1-3-16S_S1_L001_R1_001" = c("CE1-16S_S1_L001_R1_001", "CF1-3-16S_S1_L001_R1_001"),
-  "M2-1-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-1-16S_S1_L001_R1_001"),
-  "M2-1-NZY-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-1-16S_S1_L001_R1_001"),
-  "M2-2-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-2-16S_S1_L001_R1_001"),
-  "M2-2-NZY-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-2-16S_S1_L001_R1_001"),
-  "M2-3-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001"),
-  "M2-3-NZY-16S_S1_L001_R1_001" = c("CE2-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001"),
-  "M3-1-16S_S1_L001_R1_001" = c("CE3-16S_S1_L001_R1_001", "CF2-1-16S_S1_L001_R1_001"),
-  "M3-2-16S_S1_L001_R1_001" = c("CE3-16S_S1_L001_R1_001", "CF2-2-16S_S1_L001_R1_001"),
-  "M3-3-16S_S1_L001_R1_001" = c("CE3-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001")
-)
-
-## Identify ASVs present in control samples
-asvs_in_controls <- abundance_table_long_filtered %>%
-  filter(Sample %in% unlist(sample_control_map),
-         Abundance > 0) %>%
-  distinct(Sample, ASV)
-
-## Remove those ASVs from their corresponding environmental samples
-for (sample_name in names(sample_control_map)) {
-  controls <- sample_control_map[[sample_name]]
-  
-  contaminant_asvs <- asvs_in_controls %>%
-    filter(Sample %in% controls) %>%
-    pull(ASV) %>%
-    unique()
-  
-  abundance_table_long_filtered <- abundance_table_long_filtered %>%
-    mutate(Abundance = ifelse(Sample == sample_name & ASV %in% contaminant_asvs, 0, Abundance))
-}
-
-# Save final long-format abundance table
-write.csv(abundance_table_long_filtered, file = "abundance_table_long_atlantida.csv", row.names = FALSE)
-
-# Create wide-format abundance table
-abundance_table_wide <- abundance_table_long_filtered %>% 
+# Creates abundance table in wide format
+abundance_table_wide <- abundance_table_long %>% 
+  filter(!is.na(FinalAssignment)) %>%
   pivot_wider(names_from = Sample, values_from = Abundance)
 
-# Save wide-format table
-write.csv(abundance_table_wide, file = "abundance_table_wide_atlantida.csv", row.names = FALSE)
+table_1 <- abundance_table_wide %>%
+  select(ASV, FinalAssignment,
+         18:last_col(),
+         Domain, Phylum, Class, Order, Family, Genus, Species) %>%
+  arrange(ASV)
+colnames(table_1) <- gsub("-16S_S1_L001_R1_001", "", colnames(table_1))
+
+# Save wide format abundance table
+write.csv(table_1, "results/Table_1.csv", row.names = FALSE)
+
+# Filter local low abundance (< 0.01%)
+abundance_table_long_filtered <- abundance_table_long %>% 
+  group_by(Sample) %>% 
+  mutate(relativeAbundance = Abundance*100/sum(Abundance)) %>% 
+  mutate(Abundance = ifelse(Abundance == 1, 0, Abundance),
+         Abundance = ifelse(relativeAbundance > 0.01, Abundance, 0),
+         Abundance = ifelse(is.na(Abundance), 0, Abundance)) %>% 
+  select(-Sequence.y, -relativeAbundance) %>% 
+  rename(Sequence = Sequence.x)
+
+# Load sample_control_map
+sample_control_map_df <- readxl::read_xlsx("refs/sample_control_map_example_complete.xlsx")
+
+# Convert to long format 
+sample_control_map_long <- sample_control_map_df %>% 
+  pivot_longer(cols = c("Extraction_control", 
+                        "Filtration_control", 
+                        "PCR_control"),
+               values_to = "Control_ID",
+               names_to = "Control_type")
+
+# Load function to remove contamination, based on control map
+source("./R/remove_contamination.R")
+
+# Store sample names in a vector
+sample_names <- sample_control_map_df$Sample_name %>% unique() 
+
+# Remove contamination for all samples and re-merge in a single data frame
+abundance_table_no_cont <- map(.x = sample_names, 
+                               .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                          sample = .x)) %>% 
+  bind_rows()
+
+# To obtain a list of the ASVs that were considered contaminants in each sample
+list_of_contaminants <- map(.x = sample_names, 
+                            .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                       sample = .x, 
+                                                       output = "contaminants")) %>% 
+  bind_rows()
+  
+# Convert to wide format
+abundance_table_no_cont_wide <- abundance_table_no_cont %>% 
+  pivot_wider(names_from = Sample, values_from = Abundance)
+
+table_2 <- abundance_table_no_cont_wide %>%
+  select(ASV, FinalAssignment,
+         18:last_col(),
+         Domain, Phylum, Class, Order, Family, Genus, Species) %>%
+  filter(!is.na(FinalAssignment)) %>% 
+  mutate(across(where(is.numeric), ~replace_na(.x, 0))) %>%
+  arrange(ASV)
+colnames(table_2) <- gsub("-16S_S1_L001_R1_001", "", colnames(table_2))
+
+# Save the output table
+write.csv(table_2, file = "results/Table_2.csv", row.names = FALSE)
