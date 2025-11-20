@@ -80,3 +80,5 @@ R/helper_files/merge_tables_refs.R
 R/helper_files/out_rc2_M3-2.csv
 R/helper_files/reproduce.R
 R/helper_files/rc_draft.R
+
+results/.~lock.Table_1.csv#

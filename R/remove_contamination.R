@@ -140,6 +140,7 @@ remove_contamination <- function(data, sample,
         return(remove_asvs)        
       }
     }
+    
     # for each control type
     asvs_in_control.df <- map(.x = c("Extraction_control", "Filtration_control","PCR_control"),
         .f = ~remove_from_control(type = .x)) %>% 
@@ -169,6 +170,5 @@ remove_contamination <- function(data, sample,
     return(asvs_in_control.df)
   } else if(output == "saved"){
     return(asvs_in_control.df)
-    warning("This option is under test!")
   }
 }

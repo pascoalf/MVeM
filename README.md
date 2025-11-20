@@ -803,12 +803,20 @@ example_automatic <- map(.x = sample_names,
                                                option = "automatic")) %>% 
   bind_rows()
 
-# If you wanto to verify which ASVs were considered contaminants without thresholds
+# If you want to verify which ASVs were considered contaminants without thresholds
 contaminants_automatic <- map(.x = sample_names,
                               .f = ~remove_contamination(data = abundance_table_long_filtered,
                                                          sample = .x,
                                                          option = "automatic",
                                                          output = "contaminants")) %>% 
+  bind_rows()
+
+# If you want to verify which ASVs were saved
+saved_automatic <- map(.x = sample_names,
+                        .f = ~remove_contamination(data = abundance_table_long_filtered,
+                                                         sample = .x,
+                                                         option = "automatic",
+                                                         output = "saved")) %>% 
   bind_rows()
 ```
 

@@ -102,7 +102,7 @@ source("R/remove_contamination.R");
 remove_contamination(data = mi_table, 
                      sample = "M2-3-16S_S1_L001_R1_001", 
                      map_sample = sample_control_map_long,
-                     output = "saved",
+                     output = "standard",
                      option = "automatic")
 #
 mi_table %>% filter(Sample %in% c("M3-2-16S_S1_L001_R1_001","CE2-16S_S1_L001_R1_001", "CF2-3-16S_S1_L001_R1_001", "BPCRP-16S_S1_L001_R1_001")) %>% View()

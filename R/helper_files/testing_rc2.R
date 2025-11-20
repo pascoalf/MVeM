@@ -33,8 +33,10 @@ source("./R/remove_contamination.R"); map(.x = sample_names,
 
 
 remove_contamination(data = mi_table, 
-                     sample = "M2-1-NZY-16S_S1_L001_R1_001", 
+                     sample = "M2-3-16S_S1_L001_R1_001", 
                      map_sample = sample_control_map_long,
                      output = "saved",
                      option = "automatic")
 #
+
+
