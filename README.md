@@ -572,29 +572,29 @@ assign_LCA <- function(x){
   fam_LCA <- x %>% pull(Family) %>% unique()
   genus_LCA <- x %>%  pull(Genus) %>% unique()
   species_LCA <- x %>%pull(Species) %>% unique()
-  
+    taxonomic_levels <- c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
   #
   if(length(dom_LCA) > 1){
     LCA <- "Uncertain"
-    Level <- "Domain"
+    Level <- taxonomic_levels
   } else if(length(phyl_LCA) > 1){
     LCA <- dom_LCA
-    Level <- "Phylum"
+    Level <- taxonomic_levels[2:7]
   } else if(length(class_LCA) > 1){
     LCA <- phyl_LCA
-    Level <- "Class"
+    Level <- taxonomic_levels[3:7]
   } else if(length(ord_LCA) > 1){
     LCA <- class_LCA
-    Level <- "Order"
+    Level <- taxonomic_levels[4:7]
   } else if(length(fam_LCA) > 1){
     LCA <- ord_LCA
-    Level <- "Family"
+    Level <- taxonomic_levels[5:7]
   } else if(length(genus_LCA) > 1){
     LCA <- fam_LCA
-    Level <- "Genus"
+    Level <- taxonomic_levels[6:7]
   } else if(length(species_LCA) > 1){
     LCA <- paste(genus_LCA, "sp.")
-    Level <- "Species"
+    Level <- taxonomic_levels[7]
   } else {
     LCA <- species_LCA
     Level <- NA
@@ -620,14 +620,17 @@ taxonomic_assignments <- top_hits %>%
   mutate(taxa = map(.x = data, .f = ~unique(.x$Species))) %>% 
   mutate(isTie = map(.x = taxa, .f = ~ifelse(length(unique(.x)) == 1, FALSE, TRUE))) %>%
   mutate(Level = map(.x = data, 
-                     .f = ~assign_LCA(.x)[2])) %>% 
-  unnest(c(LCA, Level, data, isTie)) %>% 
+                     .f = ~assign_LCA(.x)[-1])) %>% 
+  unnest(c(LCA, data, isTie)) %>% 
   group_by(Query.accession) %>% 
   slice_head(n = 1) %>% 
   mutate(FinalAssignment = ifelse(isTRUE(isTie), LCA, Species)) %>% 
   mutate(Species = ifelse(!is.na(Level), NA, Species)) %>% 
-  mutate(Genus = case_when(Level == "Genus" ~ NA, TRUE ~ Genus)) %>% 
-  mutate(Family = case_when(Level == "Family" ~ NA, TRUE ~ Family)) %>% 
+  mutate(Genus = case_when("Genus" %in% Level[[1]] ~ NA, TRUE ~ Genus)) %>% 
+  mutate(Family = case_when("Family" %in% Level[[1]] ~ NA, TRUE ~ Family)) %>% 
+  mutate(Order = case_when("Order" %in% Level[[1]] ~ NA, TRUE ~ Order)) %>% 
+  mutate(Class = case_when("Class" %in% Level[[1]] ~ NA, TRUE ~ Class)) %>% 
+  mutate(Phylum = case_when("Phylum" %in% Level[[1]] ~ NA, TRUE ~ Phylum)) %>% 
   select(Query.accession,
          FinalAssignment, 
          Bit.Score, evalue, Alignment.length,
