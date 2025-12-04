@@ -81,4 +81,13 @@ R/helper_files/out_rc2_M3-2.csv
 R/helper_files/reproduce.R
 R/helper_files/rc_draft.R
 
-results/.~lock.Table_1.csv#
+results/.~lock.Table_1.csv
+
+#
+R/issue_3.R
+README.md
+tmp_files/Table_1.xlsx
+tmp_files/Table_2.xlsx
+tmp_files/all_hits.csv
+tmp_files/removecontaminationfunction.zip
+
