@@ -6,7 +6,7 @@ library(stringr)
 library(purrr)
 
 # Load blast results
-all_hits <- read.table("./results/blast_results_taxonomy", header = FALSE, sep = "\t", # change file path as needed
+all_hits <- read.table("./results/blast_tax_results", header = FALSE, sep = "\t", # change file path as needed
                      col.names = c("Query accession", "Query sequence length",
                                    "Subject seq-id",    "Subject accession",
                                    "Subject sequence length",   "evalue", "Bit Score",
@@ -166,7 +166,7 @@ abundance_table_no_cont_wide <- abundance_table_no_cont %>%
 
 table_2 <- abundance_table_no_cont_wide %>%
   select(ASV, FinalAssignment,
-         18:last_col(),
+         17:last_col(),
          Domain, Phylum, Class, Order, Family, Genus, Species) %>%
   filter(!is.na(FinalAssignment)) %>% 
   mutate(across(where(is.numeric), ~replace_na(.x, 0))) %>%
