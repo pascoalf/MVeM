@@ -103,7 +103,7 @@ getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
 # If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
 
-colnames(track) <- c("Raw reads", "Filtered reads", "Denoised Fw reads", "Denoised Rv reads", "Merged reads", "Non-chimeric reads")
+colnames(track) <- c("Input reads", "Filtered reads", "Denoised Fw reads", "Denoised Rv reads", "Merged reads", "Non-chimeric reads")
 rownames(track) <- sample.namesF ## sample.namesF is just to indicate the sample ID
 rownames(track) <- gsub("-16S_S1_L001_R1_001", "", rownames(track)) # Change according to your sample names
 head(track)
@@ -116,3 +116,4 @@ ASV_table <- seqtab.nochim
 
 # Create .csv file
 write.table(ASV_table, file='./results/ASV_table.tsv', quote = FALSE, sep = '\t', col.names = NA)
+
