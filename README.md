@@ -16,7 +16,7 @@ fish, elasmobranchs, and cetaceans, in environmental DNA samples. The
 pipeline aims to support the growing efforts to improve the reliability,
 reproducibility, and accessibility of eDNA methods. The pipeline is
 further described in Afonso and Álvarez-González et al. (in
-preparation).
+peer-review).
 
 # Preliminary steps
 
