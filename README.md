@@ -18,6 +18,14 @@ reproducibility, and accessibility of eDNA methods. The pipeline is
 further described in Afonso and Álvarez-González et al. (in
 peer-review).
 
+# How to cite
+
+If you used MVeM, please cite our work as:
+ - Afonso, L., Álvarez-González, M., Pascoal, F. Saavedra, C., Pierce,
+    G., Correia, A.M., Magalhães, C., Suarez-Bregua, P. (in peer-review).
+    Refining Molecular Monitoring Techniques: eDNA Methods and
+    Metabarcoding to Detect Marine Vertebrates.
+
 # Preliminary steps
 
 Before starting, we advise the user to create a dedicated directory
@@ -1026,7 +1034,7 @@ example</figcaption>
 # References
 
 -   Afonso, L., Álvarez-González, M., Pascoal, F. Saavedra, C., Pierce,
-    G., Correia, A.M., Magalhães, C., Suarez-Bregua, P. (in prep).
+    G., Correia, A.M., Magalhães, C., Suarez-Bregua, P. (in peer-review).
     Refining Molecular Monitoring Techniques: eDNA Methods and
     Metabarcoding to Detect Marine Vertebrates.
 
