@@ -1035,7 +1035,7 @@ example</figcaption>
 
 -   Afonso, L., Álvarez-González, M., Pascoal, F. Saavedra, C., Pierce,
     G., Correia, A.M., Magalhães, C., Suarez-Bregua, P. (in peer-review).
-    Refining Molecular Monitoring Techniques: eDNA Methods and
+    Evaluating Molecular Monitoring Techniques: eDNA Methods and
     Metabarcoding to Detect Marine Vertebrates.
 
 -   Altschul, S.F., Gish, W., Miller, W., Myers, E.W. and Lipman, D.J.
