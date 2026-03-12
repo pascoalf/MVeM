@@ -23,7 +23,7 @@ peer-review).
 If you used MVeM, please cite our work as:
  - Afonso, L., Álvarez-González, M., Pascoal, F. Saavedra, C., Pierce,
     G., Correia, A.M., Magalhães, C., Suarez-Bregua, P. (in peer-review).
-    Refining Molecular Monitoring Techniques: eDNA Methods and
+    Evaluating Molecular Monitoring Techniques: eDNA Methods and
     Metabarcoding to Detect Marine Vertebrates.
 
 # Preliminary steps
