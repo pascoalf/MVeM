@@ -480,7 +480,7 @@ all_hits <- read.table("./results/blast_tax_results", header = FALSE, sep = "\t"
                                    "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"))
 ```
 
-## Add ban list (optional)
+## Geographic filtering (optional)
 
 Considering the length of the reads used to classify taxonomy, and
 considering the high similarity between some species within the same
@@ -488,14 +488,14 @@ families, it is possible to have a sequence attributed to multiple
 different species. However, based on the study area, it might be
 possible to know beforehand that some species are not present in the
 area. Thus, in those specific situations, to improve the accuracy of the
-classification, we can remove them, using a ban list. Note that this is
-optional and should be carefully considered by the user, to avoid
+classification, we can restrict the search space to a predefined set of 
+species that are expected in a given area. 
+Note that this is optional and should be carefully considered by the user, to avoid
 introducing bias in the analysis.
 
-If you want to apply a ban list, you must edit the file
-**ban_list.txt**, according to your own experimental setup. If you have
-no prior knowledge of the species expected in the area, then you should
-**not** apply this step.
+
+
+
 
 ``` r
 # Ban list
