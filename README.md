@@ -493,9 +493,12 @@ species that are expected in a given area.
 Note that this is optional and should be carefully considered by the user, to avoid
 introducing bias in the analysis.
 
+steps:
+1. if hit in all_hits is not in geo_ref => add to ban list
+2. apply ban list (optional)
+``` r
 
-
-
+```
 
 ``` r
 # Ban list
